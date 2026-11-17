@@ -26,7 +26,7 @@ step before starting the next, and change no code before step 5.
 | [`docs/agents/laravel.md`](docs/agents/laravel.md) | **Writing** Laravel, Inertia, Vue, Pest or Wayfinder code: the framework's own guidelines for the installed versions. |
 | [`docs/adr/`](docs/adr/) | **Questioning** or changing a recorded decision. |
 | [`CONTEXT.md`](CONTEXT.md) | **Naming** anything in the domain. |
-| `CODING_STANDARDS.md` | **Writing** or **reviewing** code. _(Not written yet: step 4.)_ |
+| [`CODING_STANDARDS.md`](CODING_STANDARDS.md) | **Writing** or **reviewing** code, and **running** the checks. |
 
 ## Guardrails
 
