@@ -11,8 +11,8 @@ step before starting the next, and change no code before step 5.
 
 1. Skeleton: specs, agent-writing guide, this file. **Done.**
 2. Process skills in `.claude/skills/`. **Done.**
-3. Decisions, one ADR each, reached with the user. **Next.**
-4. Coding standards, glossary and folder `CLAUDE.md` files, written from those ADRs.
+3. Decisions, one ADR each, reached with the user. **Done.**
+4. Coding standards, glossary and folder `CLAUDE.md` files, written from those ADRs. **Next.**
 5. Spec, then small tickets, then implementation one ticket at a time.
 
 ## Start here
@@ -23,8 +23,8 @@ step before starting the next, and change no code before step 5.
 | [`docs/spec/pixelforge-api.md`](docs/spec/pixelforge-api.md) | **Touching** Pixelforge: requests, errors, limits, pricing, webhooks, test keywords. |
 | [`docs/agents/writing-for-agents.md`](docs/agents/writing-for-agents.md) | **Writing** or editing a `CLAUDE.md`, skill, agent or `docs/agents/` file. |
 | [`docs/agents/tickets.md`](docs/agents/tickets.md) | **Creating**, picking or closing a ticket in `tickets/`. |
-| `docs/adr/` | **Questioning** or changing a recorded decision. _(None yet: step 3.)_ |
-| `CONTEXT.md` | **Naming** anything in the domain. _(Not written yet: step 4.)_ |
+| [`docs/adr/`](docs/adr/) | **Questioning** or changing a recorded decision. |
+| [`CONTEXT.md`](CONTEXT.md) | **Naming** anything in the domain. |
 | `CODING_STANDARDS.md` | **Writing** or **reviewing** code. _(Not written yet: step 4.)_ |
 
 ## Guardrails
