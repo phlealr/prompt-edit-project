@@ -1,6 +1,6 @@
 # 0008. A generation's status only moves forward, and a failure records its reason
 
-- Status: accepted
+- Status: superseded by ADR 0025
 - Date: 2026-11-17
 
 ## Context

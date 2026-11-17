@@ -11,7 +11,7 @@
     [Create a generation](../spec/pixelforge-api.md#create-a-generation),
     [Pricing and token usage](../spec/pixelforge-api.md#pricing-and-token-usage),
     [Testing](../spec/pixelforge-api.md#testing)
-  - ADRs: 0005, 0006, 0007, 0008, 0009, 0011, 0014, 0017, 0020, 0022, 0023, 0024
+  - ADRs: 0005, 0006, 0007, 0009, 0011, 0014, 0017, 0020, 0022, 0023, 0024, 0025, 0026
 
 ## Goal
 
@@ -69,13 +69,14 @@ Only signed-in users can open it. It shows:
 
 The user is redirected to the history page with the message "Generation submitted", and the new
 generation is first in the list, in `pending`. It moves to `queued` once the provider accepts it, or
-to `failed` with one of these messages (ADR 0008):
+to `failed` with one of these messages (ADR 0025):
 
 | Failure reason | Message |
 | --- | --- |
 | `prompt_rejected` | "Your prompt was rejected by the image provider's content policy. You were not charged." |
 | `provider_failed` | "The image could not be generated. You were not charged. Please try again." |
 | `provider_unavailable` | "The image service was busy or unavailable, so we gave up. You were not charged. Please try again." |
+| `price_changed` | "Prices changed after your estimate, so this generation wasn't submitted. You were not charged. Check the new estimate and submit again." |
 
 `provider_failed` is defined here and reached in the `generation-updates` spec.
 
@@ -87,20 +88,34 @@ to `failed` with one of these messages (ADR 0008):
 2. They press Generate. The server validates the input (ADR 0023) and computes the estimate from the
    current pricing.
 3. In one transaction, locking the user's row: the server checks that the balance covers the
-   estimate's maximum, creates the generation in `pending`, inserts a `hold` of minus that maximum,
-   and dispatches the submission job (ADR 0006, ADR 0009).
+   estimate's maximum, creates the generation in `pending` with the rates the estimate used, inserts
+   a `hold` of minus that maximum, and dispatches the submission job (ADR 0006, ADR 0009, ADR 0026).
 4. The user is redirected to the history page and sees the `pending` generation.
-5. The job sends the generation to the provider with the generation's UUID as idempotency key and the
+5. The job fetches the provider's rates fresh, skipping the cache, and finds them equal to the
+   stored ones (ADR 0026).
+6. The job sends the generation to the provider with the generation's UUID as idempotency key and the
    generation's id in the metadata (ADR 0009).
-6. The provider accepts it. The job applies the response as a provider update through the shared
+7. The provider accepts it. The job applies the response as a provider update through the shared
    action (ADR 0010): the generation moves to `queued` and stores the provider's id.
 
 ### The provider answers with a later status
 
 A retried create with the same idempotency key may return the generation as it is now, already
 `processing` or final, and a webhook may arrive before the create returns. The job applies whatever
-the response says through the same action, and statuses only move forward (ADR 0008), so neither case
+the response says through the same action, and statuses only move forward (ADR 0025), so neither case
 moves a generation back or applies anything twice.
+
+### Rates changed before sending
+
+1. Before an attempt, the job's fresh rates differ in any way from the rates stored with the
+   generation.
+2. The job sends nothing, fails the generation with `price_changed`, and inserts a `release` equal to
+   the hold (ADR 0026).
+3. The user sees the generation as failed with the `price_changed` message; a new estimate on the
+   generate page uses the new rates.
+4. The check is skipped on an attempt that follows a network error or timeout, since the provider may
+   already have created the generation. Whatever the provider billed is then charged at cost plus
+   25% (`generation-updates` spec).
 
 ### Invalid input
 
@@ -138,7 +153,7 @@ The server answers with an error next to each invalid field. No generation, hold
    `503 overloaded`, or the request fails with a network error or timeout.
 2. The job waits the longer of `Retry-After` and the backoff for that attempt (5 s, doubling, at most
    60 s), then retries with the same idempotency key (ADR 0022). The generation stays `pending`.
-3. If a later attempt is accepted, the normal flow continues from step 6. A request that timed out
+3. If a later attempt is accepted, the normal flow continues from step 7. A request that timed out
    after the provider created the generation is answered on retry as an idempotent replay: still one
    generation, billed once.
 4. After 8 attempts (from configuration), the job fails the generation with `provider_unavailable`
@@ -198,8 +213,9 @@ Balance and hold
 - [ ] A submission whose maximum exceeds the balance at the server is refused with that message and
       creates nothing.
 - [ ] A user with no ledger rows cannot submit a generation.
-- [ ] A valid submission creates one generation in `pending`, one `hold` row of minus the estimate's
-      maximum for the same input, and one queued submission job, all in one transaction.
+- [ ] A valid submission creates one generation in `pending` storing the rates the estimate used, one
+      `hold` row of minus the estimate's maximum for the same input, and one queued submission job,
+      all in one transaction.
 - [ ] Two concurrent submissions that together exceed the balance cannot both create a hold.
 - [ ] After submitting, the user is on the history page with "Generation submitted" and the new
       generation first.
@@ -209,6 +225,11 @@ Submission job
 - [ ] No web request calls the provider to create a generation.
 - [ ] The create request carries the generation's UUID as `Idempotency-Key`, the same on every
       attempt, and the generation's id in `metadata`.
+- [ ] Before each create attempt, the job fetches the provider's rates bypassing the cache; when any
+      rate differs from the stored ones, nothing is sent, the generation fails with `price_changed`,
+      and it gets one `release` equal to its hold and no `charge`.
+- [ ] After an attempt that ended in a network error or timeout, the next attempt is sent without the
+      rate check.
 - [ ] An accepted create moves the generation to `queued` and stores the provider's id.
 - [ ] A create response with a later status (an idempotent replay) is applied through the shared
       action and never moves the generation back.

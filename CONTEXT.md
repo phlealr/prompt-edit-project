@@ -8,17 +8,17 @@ from this list is either new language to reconsider or a gap to record with `rec
 
 - **Generation**: one request by a user for one image, from submission to its final status. _Avoid_:
   job, request, image, task (a "job" is a queued job; an "image" is the generation's result).
-  _Source_: ADR 0008.
+  _Source_: ADR 0025.
 - **Status**: where a generation is in its lifecycle: `pending`, `queued`, `processing`,
   `succeeded` or `failed`; it only moves forward. _Avoid_: state (for this field), stage. _Source_:
-  ADR 0008.
+  ADR 0025.
 - **Pending**: the status of a generation saved by us and not yet accepted by the provider. _Avoid_:
-  submitting, new, draft. _Source_: ADR 0008.
+  submitting, new, draft. _Source_: ADR 0025.
 - **Final status**: `succeeded` or `failed`; a generation never leaves it. _Avoid_: done, complete,
-  terminal. _Source_: ADR 0008.
+  terminal. _Source_: ADR 0025.
 - **Failure reason**: why a generation failed, in our own terms: `prompt_rejected`,
-  `provider_failed` or `provider_unavailable`. _Avoid_: error code (that is the provider's). _Source_:
-  ADR 0008.
+  `provider_failed`, `provider_unavailable` or `price_changed`. _Avoid_: error code (that is the
+  provider's). _Source_: ADR 0025.
 - **Size**: the image dimensions a user picks: `1024x1024`, `1536x1024` or `1024x1536`. _Avoid_:
   resolution, dimensions, format. _Source_: ADR 0023.
 - **Quality**: the detail level a user picks: `low`, `medium` or `high`. _Avoid_: tier, level, mode.
@@ -64,6 +64,9 @@ from this list is either new language to reconsider or a gap to record with `rec
 - **Release**: a ledger row giving a hold back when the generation reaches a final status. _Avoid_:
   refund, unhold, cancel. _Source_: ADR 0006.
 - **Balance**: the sum of a user's ledger rows. _Avoid_: wallet, funds, account. _Source_: ADR 0006.
+- **Uncovered charge**: the part of a charge above its generation's hold, possible only when the
+  provider's rates rose after the rate check; it can take a balance below zero. _Avoid_: overdraft,
+  debt, loss. _Source_: ADR 0026.
 
 ## People and code
 

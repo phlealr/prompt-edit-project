@@ -28,7 +28,7 @@ The provider's `Retry-After` is honoured (ADR 0009, ADR 0022,
 ## Safety
 
 - A job may run more than once (retries, worker restarts). That is safe because the actions it calls
-  are repeat-safe (ADR 0006, ADR 0008); a job adds no state of its own.
+  are repeat-safe (ADR 0006, ADR 0025); a job adds no state of its own.
 - A job created together with a generation is dispatched inside that generation's transaction, so
   both are saved or neither is (ADR 0004, ADR 0009).
 - Jobs are dispatched only through Laravel's queue API (ADR 0004).

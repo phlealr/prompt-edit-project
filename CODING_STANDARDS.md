@@ -61,13 +61,13 @@ Create classes with `php artisan make:*` and move nothing out of the place the t
   builder, `Storage` and `Cache`. PostgreSQL-specific SQL needs an ADR.
 - Our own classes get an interface only when a second implementation exists.
 
-## Money (ADR 0005, ADR 0006, ADR 0007)
+## Money (ADR 0005, ADR 0006, ADR 0007, ADR 0026)
 
 - Every amount is an integer number of nanodollars, in a `bigint` column, handled as `Money`. No
   `float` holds money anywhere: PHP, SQL, casts or JavaScript.
 - Provider decimal strings become nanodollars by exact string parsing, never through a float.
 - The markup and its rounding happen only in `Money`: charge = ceil(cost × 5 / 4), integer arithmetic,
-  once, on the final amount.
+  once, on the final amount. A charge is never capped at its hold; one above it logs a warning.
 - Money reaches the frontend already formatted by `Money` (4 decimals for users, the exact 9 decimals
   for operators, the exact amount on hover). The frontend does no money arithmetic.
 - Credit movements are rows inserted in `credit_transactions` (`purchase`, `hold`, `release`,
@@ -75,15 +75,21 @@ Create classes with `php artisan make:*` and move nothing out of the place the t
 - A balance is the sum of the user's ledger rows. The balance check and the hold are written in one
   transaction that locks the user's row.
 
-## Generations (ADR 0008, ADR 0009, ADR 0010)
+## Generations (ADR 0009, ADR 0010, ADR 0025, ADR 0026, ADR 0027)
 
 - Statuses move forward only: `pending → queued → processing → succeeded | failed`. A backwards or
   out-of-final update is ignored without error.
-- `failure_reason` (`prompt_rejected`, `provider_failed`, `provider_unavailable`) is set exactly when
-  the status is `failed`.
+- `failure_reason` (`prompt_rejected`, `provider_failed`, `provider_unavailable`, `price_changed`) is
+  set exactly when the status is `failed`.
 - The provider is never called from a web request to create a generation; a queued job does it, with
   the generation's UUID as the idempotency key and its id in the provider metadata.
 - Creating a generation, its hold and its job happen in one transaction.
+- A generation stores the rates its hold used. Before each create attempt (except after a network
+  error or timeout) the job compares them with fresh, uncached provider rates; any difference fails
+  the generation with `price_changed` and sends nothing.
+- No code fails a generation the provider has accepted; only a provider update makes it final.
+  Polling takes `queued` and `processing` generations only, capped per run, least recently updated or
+  polled first.
 
 ## Tests (ADR 0015, ADR 0021, `tdd` skill)
 

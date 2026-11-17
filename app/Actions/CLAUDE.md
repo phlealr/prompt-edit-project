@@ -20,7 +20,7 @@ All business logic lives here (ADR 0020). Shared rules: [`CODING_STANDARDS.md`](
   the `release` and `charge` rows. Submission, webhook and poll all call it (ADR 0010). No other code
   changes a generation's status or writes a charge.
 - Running an action twice with the same input leaves the same result: forward-only statuses and the
-  ledger's unique (generation, type) rows make repeats harmless (ADR 0006, ADR 0008).
+  ledger's unique (generation, type) rows make repeats harmless (ADR 0006, ADR 0025).
 - A rule broken by the caller's input throws an exception named after the rule. Provider failures
   arrive as the exceptions of `app/ImageProviders/Exceptions/`; an action decides what each means for
   the generation (retry later, or fail with a reason).
