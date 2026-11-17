@@ -49,3 +49,8 @@ it('formats an amount for operators with all 9 decimals', function (int $nanodol
     'dollars' => [12_345_000_000_001, '$12345.000000001'],
     'negative' => [-467_343_750, '-$0.467343750'],
 ]);
+
+it('serializes to the user format and the exact amount for the frontend', function () {
+    expect(json_encode(Money::fromNanodollars(467_343_750)))
+        ->toBe('{"user":"$0.4673","exact":"$0.467343750"}');
+});

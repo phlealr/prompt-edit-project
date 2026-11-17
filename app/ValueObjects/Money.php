@@ -3,11 +3,12 @@
 namespace App\ValueObjects;
 
 use InvalidArgumentException;
+use JsonSerializable;
 
 /**
  * An exact amount of money, as an integer number of nanodollars (ADR 0005).
  */
-final readonly class Money
+final readonly class Money implements JsonSerializable
 {
     private const int NANODOLLARS_PER_DOLLAR = 1_000_000_000;
 
@@ -78,6 +79,17 @@ final readonly class Money
     public function exact(): string
     {
         return $this->format(abs($this->nanodollars), 9);
+    }
+
+    /**
+     * Money reaches the frontend already formatted: the user format, and the exact amount for the
+     * hover (ADR 0007).
+     *
+     * @return array{user: string, exact: string}
+     */
+    public function jsonSerialize(): array
+    {
+        return ['user' => $this->forUser(), 'exact' => $this->exact()];
     }
 
     /**

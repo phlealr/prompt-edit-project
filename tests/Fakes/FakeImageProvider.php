@@ -20,6 +20,9 @@ final class FakeImageProvider implements ImageProvider
 
     public bool $pricingUnavailable = false;
 
+    /** @var array{prompt: string, size: string, quality: string, reference_images: list<string>}|null */
+    public ?array $estimatedFor = null;
+
     public function __construct()
     {
         $this->estimate = new Estimate(
@@ -39,6 +42,13 @@ final class FakeImageProvider implements ImageProvider
         if ($this->pricingUnavailable) {
             throw new PricingUnavailable('Fake pricing is unavailable.');
         }
+
+        $this->estimatedFor = [
+            'prompt' => $prompt,
+            'size' => $size->value,
+            'quality' => $quality->value,
+            'reference_images' => $referenceImages,
+        ];
 
         return $this->estimate;
     }
