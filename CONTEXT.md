@@ -23,11 +23,12 @@ from this list is either new language to reconsider or a gap to record with `rec
 ## Provider
 
 - **Provider**: an external image-generation service the app sends generations to; Pixelforge is the
-  current one, behind the provider interface. _Avoid_: vendor, API, Pixelforge (except for the
-  Pixelforge implementation itself). _Source_: ADR 0014.
+  current one, behind the provider interface. In code it is `ImageProvider`, because Laravel's
+  `app/Providers/` already means service providers. _Avoid_: vendor, API, Pixelforge (except for the
+  Pixelforge implementation itself). _Source_: ADR 0014, ADR 0020.
 - **Provider update**: the provider's view of a generation at one moment (status, result, cost),
   whether it came from a submission response, a webhook or a poll; applied to the generation by one
-  use case. _Avoid_: callback, sync, refresh. _Source_: ADR 0010.
+  action. _Avoid_: callback, sync, refresh. _Source_: ADR 0010.
 - **Webhook event**: one notification the provider posted to us, stored once by its event id.
   _Avoid_: callback, hook, notification. _Source_: ADR 0010.
 - **Poll**: fetching a generation's current state from the provider because its webhooks may be lost.
@@ -67,5 +68,8 @@ from this list is either new language to reconsider or a gap to record with `rec
 - **Operator report**: the page showing spend, provider cost and profit per UTC completion day and per
   user, reconciled with the provider's usage. _Avoid_: dashboard, admin page, analytics. _Source_:
   ADR 0016.
-- **Use case**: a class that holds one piece of business logic behind one public method, called by
-  controllers, jobs and commands. _Avoid_: service, action, handler, manager. _Source_: ADR 0013.
+- **Action**: a class in `app/Actions/<Area>/` that holds one piece of business logic behind one
+  public `handle()` method, called by controllers, jobs and commands. _Avoid_: use case, service,
+  handler, manager. _Source_: ADR 0020.
+- **Area**: one of the groups the code is organised by in every layer: `Generations`, `Credits`,
+  `Reports`. _Avoid_: module, domain, context. _Source_: ADR 0020.

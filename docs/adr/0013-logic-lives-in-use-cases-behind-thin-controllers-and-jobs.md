@@ -1,6 +1,6 @@
 # 0013. Logic lives in use-case classes; controllers and jobs are thin entry points
 
-- Status: accepted
+- Status: superseded by ADR 0020
 - Date: 2026-11-17
 
 ## Context
