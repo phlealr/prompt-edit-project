@@ -36,3 +36,5 @@ From the spec; the section names are links into `docs/spec/pixelforge-api.md`:
   compared in constant time; timestamps more than 5 minutes off are rejected (ADR 0010, Verifying
   signatures).
 - Usage is billed on the UTC day a generation **completed** (ADR 0016, Usage).
+- Usage covers at most 92 days per request; the interface takes any range, and the implementation
+  splits it into pieces of at most 92 days and joins them (ADR 0030, Usage).
