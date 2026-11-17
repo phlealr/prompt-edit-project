@@ -6,14 +6,14 @@ the markup, and the grading order (correct money and robustness before polish).
 
 ## Current phase
 
-**Setting up the AI workflow. There is no application code yet.** Follow the order below; finish a
-step before starting the next, and change no code before step 5.
+**Building features.** The app is the untouched starter kit plus tooling; feature code arrives only
+through tickets (`/write-spec`, `/create-tickets`, `/implement-ticket`).
 
 1. Skeleton: specs, agent-writing guide, this file. **Done.**
 2. Process skills in `.claude/skills/`. **Done.**
 3. Decisions, one ADR each, reached with the user. **Done.**
-4. Coding standards, glossary and folder `CLAUDE.md` files, written from those ADRs. **Next.**
-5. Spec, then small tickets, then implementation one ticket at a time.
+4. Coding standards, glossary and folder `CLAUDE.md` files, written from those ADRs. **Done.**
+5. Spec, then small tickets, then implementation one ticket at a time. **Next.**
 
 ## Start here
 
