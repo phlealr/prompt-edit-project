@@ -19,6 +19,12 @@ from this list is either new language to reconsider or a gap to record with `rec
 - **Failure reason**: why a generation failed, in our own terms: `prompt_rejected`,
   `provider_failed` or `provider_unavailable`. _Avoid_: error code (that is the provider's). _Source_:
   ADR 0008.
+- **Size**: the image dimensions a user picks: `1024x1024`, `1536x1024` or `1024x1536`. _Avoid_:
+  resolution, dimensions, format. _Source_: ADR 0023.
+- **Quality**: the detail level a user picks: `low`, `medium` or `high`. _Avoid_: tier, level, mode.
+  _Source_: ADR 0023.
+- **Reference image**: an http(s) image URL a user adds to guide the style, at most 4 per generation.
+  _Avoid_: style image, attachment, input image. _Source_: ADR 0023.
 
 ## Provider
 

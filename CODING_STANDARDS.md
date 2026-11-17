@@ -30,7 +30,7 @@ The structure is layer-first; every layer uses the same **areas**: `Generations`
 | Queued entry points | `app/Jobs/<Area>/` |
 | Provider boundary | `app/ImageProviders/` (interface and shared types), `Exceptions/`, `Pixelforge/` |
 | Money | `app/ValueObjects/Money.php` |
-| Statuses, failure reasons | `app/Enums/` |
+| Statuses, failure reasons, sizes, qualities | `app/Enums/` |
 | Models | `app/Models/` |
 | Pages | `resources/js/pages/<area>/` |
 | Tests | `tests/Feature/<Area>/`, `tests/Unit/<Area>/`, architecture tests in `tests/Arch/` |

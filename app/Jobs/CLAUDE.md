@@ -12,11 +12,16 @@ Queued entry points: no business logic here (ADR 0013, ADR 0020). Shared rules:
 
 ## Retrying on the provider's limits
 
-The provider's `Retry-After` is honoured (ADR 0009, `docs/spec/pixelforge-api.md#rate-limits-and-quotas`):
+The provider's `Retry-After` is honoured (ADR 0009, ADR 0022,
+`docs/spec/pixelforge-api.md#rate-limits-and-quotas`):
 
-- When the action throws a rate-limited or overloaded exception, the job releases itself back to
-  the queue after the exception's retry-after seconds. This is queue mechanics, not a business
+- When the action throws a rate-limited, overloaded or connection exception, the job releases itself
+  back to the queue after the longer of the exception's retry-after seconds and the backoff for that
+  attempt (5 seconds, doubling, capped in configuration). This is queue mechanics, not a business
   decision; the action decided it was retryable by throwing that exception.
+- Nothing else is retried: the action fails the generation itself for errors waiting cannot fix
+  (ADR 0022).
+- The maximum number of attempts comes from configuration (default 8).
 - When the attempts run out, the job's `failed()` calls the action that fails the generation with
   `provider_unavailable`, which releases its hold.
 
