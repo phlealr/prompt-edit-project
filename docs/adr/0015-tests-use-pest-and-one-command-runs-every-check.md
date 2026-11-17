@@ -1,6 +1,6 @@
 # 0015. Tests use Pest with architecture tests, and one command runs every quality check
 
-- Status: accepted
+- Status: superseded by ADR 0021
 - Date: 2026-11-17
 
 ## Context
