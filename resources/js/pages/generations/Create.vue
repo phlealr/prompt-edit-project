@@ -16,6 +16,7 @@ const props = defineProps<{
     sizes: string[];
     qualities: string[];
     defaults: { size: string; quality: string };
+    balance: Money;
 }>();
 
 defineOptions({
@@ -31,7 +32,12 @@ const PRICE_RETRY_MS = 10_000;
 // Kept out of the template: a literal URL in an attribute confuses vue-tsc's scope tracking.
 const REFERENCE_IMAGE_PLACEHOLDER = 'https://example.com/style.png';
 
-type Estimate = { minimum: Money; maximum: Money };
+type Estimate = {
+    minimum: Money;
+    maximum: Money;
+    balance: Money;
+    enoughCredits: boolean;
+};
 
 const form = useForm({
     prompt: '',
@@ -217,6 +223,10 @@ function removeReferenceImage(index: number): void {
             </div>
 
             <div class="grid gap-1 rounded-md border p-4 text-sm">
+                <p>
+                    Balance
+                    <Amount :amount="estimate?.balance ?? balance" />
+                </p>
                 <p v-if="priceUnavailable" class="text-destructive">
                     Price unavailable right now
                 </p>
@@ -236,7 +246,22 @@ function removeReferenceImage(index: number): void {
             </div>
 
             <div>
-                <Button type="submit" :disabled="priceUnavailable || !estimate">
+                <p
+                    v-if="
+                        estimate && !estimate.enoughCredits && !priceUnavailable
+                    "
+                    class="mb-3 text-sm text-destructive"
+                >
+                    Not enough credits: this can cost up to
+                    <Amount :amount="estimate.maximum" /> and your balance is
+                    <Amount :amount="estimate.balance" />
+                </p>
+                <Button
+                    type="submit"
+                    :disabled="
+                        priceUnavailable || !estimate || !estimate.enoughCredits
+                    "
+                >
                     Generate
                 </Button>
             </div>

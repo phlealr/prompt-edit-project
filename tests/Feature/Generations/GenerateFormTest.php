@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CreditTransaction;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -19,6 +20,33 @@ it('shows every size and quality, with 1024x1024 and medium selected', function 
         );
 });
 
+it('shows the user\'s balance with 4 decimals and the exact amount', function () {
+    $user = User::factory()->create();
+    CreditTransaction::factory()->for($user)->purchase(5_000_000_000)->create();
+    CreditTransaction::factory()->for($user)->purchase(123_456_789)->create();
+
+    $this->actingAs($user)
+        ->get(route('generate'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('balance', ['user' => '$5.1235', 'exact' => '$5.123456789'])
+        );
+});
+
+it('says whether the balance covers the estimate\'s maximum', function (int $balance, bool $enoughCredits) {
+    fakeImageProvider(); // estimate maximum: 20,000,000 nanodollars
+    $user = User::factory()->create();
+    CreditTransaction::factory()->for($user)->purchase($balance)->create();
+
+    $this->actingAs($user)
+        ->postJson(route('generate.estimate'), ['prompt' => 'A cat', 'size' => '1024x1024', 'quality' => 'medium'])
+        ->assertOk()
+        ->assertJsonPath('enoughCredits', $enoughCredits);
+})->with([
+    'one nanodollar short' => [19_999_999, false],
+    'exactly the maximum' => [20_000_000, true],
+    'more than the maximum' => [20_000_001, true],
+]);
+
 it('returns the estimate range, formatted for users with the exact amounts', function () {
     fakeImageProvider();
 
@@ -33,6 +61,8 @@ it('returns the estimate range, formatted for users with the exact amounts', fun
         ->assertExactJson([
             'minimum' => ['user' => '$0.0100', 'exact' => '$0.010000000'],
             'maximum' => ['user' => '$0.0200', 'exact' => '$0.020000000'],
+            'balance' => ['user' => '$0.0000', 'exact' => '$0.000000000'],
+            'enoughCredits' => false,
         ]);
 });
 

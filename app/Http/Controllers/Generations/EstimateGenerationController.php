@@ -20,7 +20,8 @@ class EstimateGenerationController extends Controller
     public function __invoke(EstimateGenerationRequest $request, EstimateGeneration $estimateGeneration): JsonResponse
     {
         try {
-            $estimate = $estimateGeneration->handle(
+            $result = $estimateGeneration->handle(
+                $request->user(),
                 (string) $request->validated('prompt'),
                 Size::from($request->string('size')->value()),
                 Quality::from($request->string('quality')->value()),
@@ -31,8 +32,10 @@ class EstimateGenerationController extends Controller
         }
 
         return response()->json([
-            'minimum' => $estimate->minimum,
-            'maximum' => $estimate->maximum,
+            'minimum' => $result['estimate']->minimum,
+            'maximum' => $result['estimate']->maximum,
+            'balance' => $result['balance'],
+            'enoughCredits' => $result['enoughCredits'],
         ]);
     }
 }
