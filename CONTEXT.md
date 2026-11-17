@@ -37,6 +37,9 @@ from this list is either new language to reconsider or a gap to record with `rec
   action. _Avoid_: callback, sync, refresh. _Source_: ADR 0010.
 - **Webhook event**: one notification the provider posted to us, stored once by its event id.
   _Avoid_: callback, hook, notification. _Source_: ADR 0010.
+- **Reload**: the history page fetching its generations again from our own server, on an interval,
+  while any of them is not final. _Avoid_: poll (that is fetching from the provider), refresh, live
+  update. _Source_: ADR 0028.
 - **Poll**: fetching a generation's current state from the provider because its webhooks may be lost.
   _Avoid_: sync, refresh, check. _Source_: ADR 0010.
 
