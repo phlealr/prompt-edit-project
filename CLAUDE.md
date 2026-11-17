@@ -35,5 +35,7 @@ Hard stops in every session.
 - **Every line must be explainable.** The author walks through and extends this code live in an
   interview. Choose the plainest construct that does the job, and leave nothing in the diff the user
   has not seen and agreed to.
+- **Commits and PRs describe the change only.** The user is the sole author: no co-author trailer,
+  no AI, tool or vendor mention in messages, PR descriptions or code comments.
 - **The spec copies are the source for Pixelforge behaviour.** Read `docs/spec/` rather than relying
   on memory. Rates come from `GET /v1/pricing` at runtime, never from a constant.
