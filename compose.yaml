@@ -1,0 +1,30 @@
+# Local PostgreSQL only (ADR 0003, ADR 0019). The app itself runs on the host with `composer run dev`.
+# Port 5433 on the host, to stay clear of other local PostgreSQL servers on 5432.
+services:
+    pgsql:
+        image: postgres:17
+        ports:
+            - '${FORWARD_DB_PORT:-5433}:5432'
+        environment:
+            POSTGRES_DB: prompt_edit
+            POSTGRES_USER: prompt_edit
+            POSTGRES_PASSWORD: secret
+        volumes:
+            - pgsql-data:/var/lib/postgresql/data
+            - ./docker/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql
+        healthcheck:
+            test:
+                [
+                    'CMD',
+                    'pg_isready',
+                    '-q',
+                    '-d',
+                    'prompt_edit',
+                    '-U',
+                    'prompt_edit',
+                ]
+            interval: 5s
+            retries: 5
+
+volumes:
+    pgsql-data:
