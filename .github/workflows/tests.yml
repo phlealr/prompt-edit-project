@@ -13,6 +13,21 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    # Same PostgreSQL as compose.yaml (ADR 0003): the app and the tests expect it on port 5433.
+    services:
+      pgsql:
+        image: postgres:17
+        env:
+          POSTGRES_DB: prompt_edit
+          POSTGRES_USER: prompt_edit
+          POSTGRES_PASSWORD: secret
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U prompt_edit -d prompt_edit"
+          --health-interval 5s
+          --health-retries 10
+
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -30,6 +45,11 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
+
+      - name: Create Test Database
+        run: psql -h 127.0.0.1 -p 5433 -U prompt_edit -d prompt_edit -f docker/pgsql/create-testing-database.sql
+        env:
+          PGPASSWORD: secret
 
       - name: Setup Application
         run: composer setup
