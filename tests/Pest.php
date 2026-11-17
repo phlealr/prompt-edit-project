@@ -1,6 +1,8 @@
 <?php
 
+use App\ImageProviders\ImageProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Fakes\FakeImageProvider;
 use Tests\TestCase;
 
 /*
@@ -44,7 +46,13 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Binds a fake ImageProvider in the container for this test and returns it.
+ */
+function fakeImageProvider(): FakeImageProvider
 {
-    // ..
+    $fake = new FakeImageProvider;
+    app()->instance(ImageProvider::class, $fake);
+
+    return $fake;
 }

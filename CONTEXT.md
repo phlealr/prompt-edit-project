@@ -35,6 +35,9 @@ from this list is either new language to reconsider or a gap to record with `rec
 - **Provider update**: the provider's view of a generation at one moment (status, result, cost),
   whether it came from a submission response, a webhook or a poll; applied to the generation by one
   action. _Avoid_: callback, sync, refresh. _Source_: ADR 0010.
+- **Rates**: the provider's price of 1M tokens of each kind (input text, input image, output,
+  reasoning), as exact amounts; a generation keeps the rates its hold used. _Avoid_: pricing, prices,
+  tariff (the provider's pricing is the endpoint the rates come from). _Source_: ADR 0026, ADR 0035.
 - **Webhook event**: one notification the provider posted to us, stored once by its event id.
   _Avoid_: callback, hook, notification. _Source_: ADR 0010.
 - **Reload**: the history page fetching its generations again from our own server, on an interval,
