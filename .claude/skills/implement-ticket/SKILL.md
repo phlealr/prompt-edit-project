@@ -52,10 +52,11 @@ Done when all of them pass. A failure is fixed, never skipped or silenced.
 
 ## 6. Review
 
-Run the review skill on the changes, fix what it finds that is in scope, and note the rest in the
-ticket's `Notes`. Rerun step 5 after any fix.
+Run the `review-changes` skill on the changes. Fix every `must-fix` finding in scope; for each
+`should-fix`, fix it or say in step 7 why not. Note out-of-scope findings in the ticket's `Notes`.
+Rerun step 5 after any fix, and rerun the review after any `must-fix` fix.
 
-Done when the review reports nothing left to fix in scope and the checks pass.
+Done when the review reports no `must-fix` finding in scope and the checks pass.
 
 ## 7. Walk the user through it
 

@@ -10,8 +10,8 @@ the markup, and the grading order (correct money and robustness before polish).
 step before starting the next, and change no code before step 5.
 
 1. Skeleton: specs, agent-writing guide, this file. **Done.**
-2. Process skills in `.claude/skills/`. **Next.**
-3. Decisions, one ADR each, reached with the user.
+2. Process skills in `.claude/skills/`. **Done.**
+3. Decisions, one ADR each, reached with the user. **Next.**
 4. Coding standards, glossary and folder `CLAUDE.md` files, written from those ADRs.
 5. Spec, then small tickets, then implementation one ticket at a time.
 
