@@ -248,7 +248,7 @@ Submission job
       `provider_unavailable` after one attempt, release its hold, and log an error.
 - [ ] Running the job twice for the same generation creates no second provider generation, hold or
       release.
-- [ ] Each failure reason shows its message from the table above.
+- [ ] Each failure reason shows its message from the table in the spec.
 
 ## Out of scope
 
