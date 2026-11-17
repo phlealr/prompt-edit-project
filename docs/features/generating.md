@@ -60,7 +60,7 @@ Only signed-in users can open it. It shows:
 | --- | --- | --- |
 | Ready | Estimate and balance | Enabled |
 | Estimating | The previous estimate stays until the new one arrives | Enabled |
-| Not enough credits | "Not enough credits: this can cost up to $X and your balance is $Y", with a "Buy credits" link to the page the `balances` spec builds | Disabled |
+| Not enough credits | "Not enough credits: this can cost up to $X and your balance is $Y", with the buy form from the `balances` spec right below it | Disabled |
 | Price unavailable | "Price unavailable right now" in place of the estimate; the page asks for the estimate again every 10 seconds until one arrives, then returns to Ready on its own | Disabled |
 | Submitting | The form as it was | Disabled until the server answers |
 | Invalid | The message next to each invalid field | Enabled |
@@ -125,7 +125,10 @@ The server answers with an error next to each invalid field. No generation, hold
 
 1. The estimate's maximum is above the balance: the form shows the "Not enough credits" state and the
    Generate button is disabled.
-2. If the balance drops between the estimate and the submission (another tab), the server's check in
+2. The user buys credits with the buy form shown there, without leaving the page (`balances` spec).
+   The form keeps everything they typed, the balance updates, and Generate is enabled once the
+   balance covers the maximum.
+3. If the balance drops between the estimate and the submission (another tab), the server's check in
    step 3 fails: the form shows the same message as a form error, and nothing is created.
 
 ### Pricing unavailable
@@ -209,7 +212,7 @@ Validation
 Balance and hold
 
 - [ ] When the balance is below the estimate's maximum, Generate is disabled and the page shows the
-      "Not enough credits" message with a "Buy credits" link.
+      "Not enough credits" message with the buy form.
 - [ ] A submission whose maximum exceeds the balance at the server is refused with that message and
       creates nothing.
 - [ ] A user with no ledger rows cannot submit a generation.
