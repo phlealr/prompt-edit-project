@@ -22,6 +22,7 @@ step before starting the next, and change no code before step 5.
 | [`docs/spec/assessment.md`](docs/spec/assessment.md) | **Scoping** anything: what is required, what is a stretch goal, how it is graded. |
 | [`docs/spec/pixelforge-api.md`](docs/spec/pixelforge-api.md) | **Touching** Pixelforge: requests, errors, limits, pricing, webhooks, test keywords. |
 | [`docs/agents/writing-for-agents.md`](docs/agents/writing-for-agents.md) | **Writing** or editing a `CLAUDE.md`, skill, agent or `docs/agents/` file. |
+| [`docs/agents/tickets.md`](docs/agents/tickets.md) | **Creating**, picking or closing a ticket in `tickets/`. |
 | `docs/adr/` | **Questioning** or changing a recorded decision. _(None yet: step 3.)_ |
 | `CONTEXT.md` | **Naming** anything in the domain. _(Not written yet: step 4.)_ |
 | `CODING_STANDARDS.md` | **Writing** or **reviewing** code. _(Not written yet: step 4.)_ |

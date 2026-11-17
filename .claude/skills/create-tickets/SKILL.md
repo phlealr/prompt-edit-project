@@ -53,36 +53,13 @@ Done when the user approves the list.
 
 ## 4. Write the ticket files
 
-One file per ticket: `tickets/<feature>/NN-<slug>.md`, where `<feature>` is the spec's file name and
-`NN` follows the approved order (`01`, `02`, …).
-
-```markdown
-# NN. <Title>
-
-- Status: todo
-- Blocked by: <NN, NN> | none
-- Spec: docs/features/<feature>.md
-
-## What to build
-
-<The behaviour this ticket makes work, from the user's or the system's side. Not a file-by-file plan.>
-
-## Acceptance criteria
-
-- [ ] <criterion, copied from the spec or added for this ticket>
-```
-
-- Leave out file paths and code: the implementation decides them, and they go stale.
-- Use the terms in `CONTEXT.md` exactly.
+Write one file per approved ticket, in the location and format in
+[`docs/agents/tickets.md`](../../../docs/agents/tickets.md), numbered in the approved order, with
+`Status: todo` and an empty `Notes` section. Use the terms in `CONTEXT.md` exactly.
 
 Done when every approved ticket has its file.
 
 ## 5. Report
 
-Give the user the folder path and the first ticket that can start.
-
-## Reference: ticket status
-
-`Status` moves `todo` → `doing` → `done`. A ticket can start when every ticket in its `Blocked by` is
-`done`; the next ticket is the lowest-numbered one that can start. A ticket is `done` when every
-acceptance criterion is checked and the user has approved the diff.
+Give the user the folder path and the first ticket that can start (the rule is in
+`docs/agents/tickets.md`).
