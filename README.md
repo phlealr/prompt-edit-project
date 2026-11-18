@@ -48,6 +48,39 @@ Put a keyword anywhere in a prompt (from Pixelforge's docs):
 | `[slow]` | Takes 60–90 seconds. |
 | `[duplicate]` | Every webhook arrives twice; it is still charged once. |
 
+## Decisions on what the brief left open
+
+Each links to the decision record with the reasoning and the alternatives.
+
+- **Fractions of a cent.** Amounts are integer nanodollars; the charge is rounded up once, so a user
+  never pays less than cost plus markup. Users see 4 decimals (hover for the exact amount); the
+  operator report shows all 9. ([0005](docs/adr/0005-money-is-integer-nanodollars-and-charges-round-up.md),
+  [0007](docs/adr/0007-users-see-four-decimals-and-operators-see-exact-amounts.md))
+- **The estimate.** A range from the current pricing, because output tokens are only known at the
+  end. Its maximum is held from the balance when submitting, and a user who can't cover it can't
+  submit. ([0011](docs/adr/0011-the-price-estimate-is-a-range-computed-on-the-server.md),
+  [0006](docs/adr/0006-credits-are-an-append-only-ledger-with-holds.md))
+- **A charge above its hold.** The user still pays the exact cost plus markup, even if their balance
+  goes below zero; that blocks their next generation and the operator report lists it.
+  ([0026](docs/adr/0026-rates-are-checked-before-sending-and-a-sent-generation-is-always-charged-cost-plus-25-percent.md))
+- **Limits and overloads.** Submissions are retried with backoff (honouring `Retry-After`), and give
+  up after a capped number of attempts as a free failure, unless Pixelforge may already have the
+  generation; then it is never failed and polling keeps checking.
+  ([0022](docs/adr/0022-submission-retries-back-off-and-give-up-after-a-capped-number-of-attempts.md),
+  [0042](docs/adr/0042-a-generation-that-may-exist-at-the-provider-is-never-failed-for-running-out-of-attempts.md))
+- **Live status.** The History page reloads its data on an interval while anything is running,
+  instead of pushing over websockets.
+  ([0028](docs/adr/0028-live-status-reloads-the-page-on-an-interval-instead-of-pushing.md))
+- **The markup.** 25% by default and configurable; each generation keeps the markup it was held at.
+  ([0045](docs/adr/0045-the-markup-is-configurable-and-each-generation-keeps-the-markup-of-its-hold.md))
+- **The operator report.** Grouped by the UTC day a generation completed, as Pixelforge bills, for
+  any range of days. ([0016](docs/adr/0016-operators-are-flagged-and-the-report-reconciles-with-provider-usage.md),
+  [0030](docs/adr/0030-the-operator-report-covers-any-date-range-and-the-provider-splits-usage-requests-to-its-own-limit.md))
+- **Accounts.** Anyone can register, with no email verification; accounts cannot be deleted, so
+  the ledger and the report never lose rows. The shared operator account above cannot be changed from the web.
+  ([0017](docs/adr/0017-anyone-can-register-with-no-extra-verification.md),
+  [0037](docs/adr/0037-accounts-cannot-be-deleted.md))
+
 ## How it handles money and Pixelforge
 
 - Every amount is an integer number of nanodollars (a billionth of a dollar); there are no floats.
