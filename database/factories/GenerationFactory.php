@@ -2,10 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Enums\CreditTransactionType;
 use App\Enums\GenerationStatus;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Rates;
+use App\Models\CreditTransaction;
 use App\Models\Generation;
 use App\Models\User;
 use App\ValueObjects\Money;
@@ -41,5 +43,20 @@ class GenerationFactory extends Factory
             'estimate_minimum' => Money::fromNanodollars(58_125_000),
             'estimate_maximum' => Money::fromNanodollars(86_250_000),
         ];
+    }
+
+    /**
+     * With its hold in the ledger: minus its estimate's maximum, as a submission places it.
+     */
+    public function withHold(): static
+    {
+        return $this->afterCreating(function (Generation $generation): void {
+            CreditTransaction::query()->create([
+                'user_id' => $generation->user_id,
+                'generation_id' => $generation->id,
+                'type' => CreditTransactionType::Hold,
+                'amount' => $generation->estimate_maximum->negate(),
+            ]);
+        });
     }
 }

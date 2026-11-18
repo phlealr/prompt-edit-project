@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('generations', function (Blueprint $table) {
             $table->string('provider_id')->nullable()->unique();
-            $table->text('provider_response')->nullable()->comment('The last provider response body, raw, for audit');
+            $table->text('provider_response')->nullable()->comment('The last provider response, raw, for audit');
         });
     }
 

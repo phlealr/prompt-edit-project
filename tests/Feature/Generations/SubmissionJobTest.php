@@ -2,6 +2,7 @@
 
 use App\Actions\Generations\ApplyProviderUpdate;
 use App\Enums\CreditTransactionType;
+use App\Enums\FailureReason;
 use App\Enums\GenerationStatus;
 use App\ImageProviders\ProviderUpdate;
 use App\ImageProviders\Rates;
@@ -35,34 +36,30 @@ it('applies a create response with a later status, from an idempotent replay', f
     expect($generation->fresh()?->status)->toBe(GenerationStatus::Processing);
 });
 
-it('never moves a generation back', function (GenerationStatus $current, GenerationStatus $update) {
+it('never moves a generation back', function (GenerationStatus $current, ProviderUpdate $update) {
     $generation = Generation::factory()->create(['status' => $current, 'provider_id' => 'gen_1']);
 
-    app(ApplyProviderUpdate::class)->handle($generation, new ProviderUpdate('gen_1', $update, '{}'));
+    app(ApplyProviderUpdate::class)->handle($generation, $update);
 
     expect($generation->fresh()?->status)->toBe($current);
 })->with([
-    'processing, then queued' => [GenerationStatus::Processing, GenerationStatus::Queued],
-    'queued, then queued again' => [GenerationStatus::Queued, GenerationStatus::Queued],
-    'succeeded, then processing' => [GenerationStatus::Succeeded, GenerationStatus::Processing],
-    'failed, then succeeded' => [GenerationStatus::Failed, GenerationStatus::Succeeded],
+    'processing, then queued' => [GenerationStatus::Processing, new ProviderUpdate('gen_1', GenerationStatus::Queued, '{}')],
+    'queued, then queued again' => [GenerationStatus::Queued, new ProviderUpdate('gen_1', GenerationStatus::Queued, '{}')],
+    'succeeded, then processing' => [GenerationStatus::Succeeded, new ProviderUpdate('gen_1', GenerationStatus::Processing, '{}')],
+    'succeeded, then failed' => [GenerationStatus::Succeeded, ProviderUpdate::failedBeforeCreation(FailureReason::ProviderFailed)],
+    'failed, then succeeded' => [GenerationStatus::Failed, new ProviderUpdate('gen_1', GenerationStatus::Succeeded, '{}')],
 ]);
 
-it('leaves a final provider status for the tickets that settle the hold', function (GenerationStatus $final) {
+it('leaves a succeeded update for the ticket that charges it', function () {
     $generation = Generation::factory()->create();
 
-    app(ApplyProviderUpdate::class)->handle($generation, new ProviderUpdate('gen_1', $final, '{}'));
+    app(ApplyProviderUpdate::class)->handle($generation, new ProviderUpdate('gen_1', GenerationStatus::Succeeded, '{}'));
 
     expect($generation->fresh()?->status)->toBe(GenerationStatus::Pending);
-})->with([GenerationStatus::Succeeded, GenerationStatus::Failed]);
+});
 
 it('creates no second provider generation, hold or release when the job runs twice', function () {
-    $generation = Generation::factory()->create();
-    CreditTransaction::factory()->for($generation->user)->create([
-        'type' => CreditTransactionType::Hold,
-        'generation_id' => $generation->id,
-        'amount' => $generation->estimate_maximum->negate(),
-    ]);
+    $generation = Generation::factory()->withHold()->create();
 
     SubmitGenerationJob::dispatchSync($generation->id);
     SubmitGenerationJob::dispatchSync($generation->id);
@@ -73,7 +70,7 @@ it('creates no second provider generation, hold or release when the job runs twi
 });
 
 it('checks fresh rates before sending, and sends only when they equal the stored ones', function () {
-    $generation = Generation::factory()->create(); // stored output rate: $40.00
+    $generation = Generation::factory()->withHold()->create(); // stored output rate: $40.00
     $this->provider->currentRates = new Rates(
         Money::fromDecimalString('5.00'),
         Money::fromDecimalString('10.00'),

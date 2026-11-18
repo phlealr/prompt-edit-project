@@ -12,6 +12,7 @@ use App\ImageProviders\ProviderUpdate;
 use App\ImageProviders\Rates;
 use App\Models\Generation;
 use App\ValueObjects\Money;
+use Throwable;
 
 /**
  * An ImageProvider for tests above the provider boundary: it answers from its properties and never
@@ -30,6 +31,9 @@ final class FakeImageProvider implements ImageProvider
 
     /** The status submit() answers with. */
     public GenerationStatus $submitStatus = GenerationStatus::Queued;
+
+    /** Thrown by submit() instead of answering, when set. */
+    public ?Throwable $submitThrows = null;
 
     /** @var list<string> The idempotency keys of every submit() call. */
     public array $submitted = [];
@@ -83,6 +87,10 @@ final class FakeImageProvider implements ImageProvider
     public function submit(Generation $generation): ProviderUpdate
     {
         $this->submitted[] = $generation->uuid;
+
+        if ($this->submitThrows !== null) {
+            throw $this->submitThrows;
+        }
 
         return new ProviderUpdate("gen_fake_{$generation->id}", $this->submitStatus, '{"fake":true}');
     }

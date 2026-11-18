@@ -2,11 +2,14 @@
 
 namespace App\ImageProviders\Pixelforge;
 
+use App\Enums\FailureReason;
 use App\Enums\GenerationStatus;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Estimate;
 use App\ImageProviders\Exceptions\PricingUnavailable;
+use App\ImageProviders\Exceptions\PromptRejected;
+use App\ImageProviders\Exceptions\SubmissionRefused;
 use App\ImageProviders\ImageProvider;
 use App\ImageProviders\ProviderUpdate;
 use App\ImageProviders\Rates;
@@ -15,6 +18,7 @@ use App\ValueObjects\Money;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
@@ -61,9 +65,27 @@ final class PixelforgeImageProvider implements ImageProvider
                 'reference_images' => $generation->reference_images,
                 'metadata' => ['generation_id' => (string) $generation->id],
             ])
-            ->throw();
+            ->throw(fn (Response $response) => $this->throwSubmissionError($response));
 
         return $this->providerUpdateFrom($response->body());
+    }
+
+    /**
+     * Maps a refused create request to our exceptions (docs/spec/pixelforge-api.md#errors). Answers
+     * waiting can fix are left as they are; generating 08 retries them.
+     */
+    private function throwSubmissionError(Response $response): void
+    {
+        $code = (string) $response->json('error.code');
+        $answer = "Pixelforge answered {$response->status()} {$code}: {$response->body()}";
+
+        if ($response->status() === 400 && $code === 'content_policy_violation') {
+            throw new PromptRejected($answer);
+        }
+
+        if ($code === 'daily_limit_exceeded' || in_array($response->status(), [401, 409, 422], true)) {
+            throw new SubmissionRefused($answer);
+        }
     }
 
     /**
@@ -81,7 +103,10 @@ final class PixelforgeImageProvider implements ImageProvider
             default => throw new UnexpectedValueException("Pixelforge answered an unknown generation status: {$body}"),
         };
 
-        return new ProviderUpdate($generation->id, $status, $body);
+        // Both of Pixelforge's failure codes mean the provider accepted it, then failed (ADR 0025).
+        $failureReason = $status === GenerationStatus::Failed ? FailureReason::ProviderFailed : null;
+
+        return new ProviderUpdate($generation->id, $status, $body, $failureReason);
     }
 
     /**

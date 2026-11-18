@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FailureReason;
 use App\Enums\GenerationStatus;
 use App\Enums\Quality;
 use App\Enums\Size;
@@ -28,13 +29,14 @@ use Illuminate\Support\Carbon;
  * @property Quality $quality
  * @property list<string> $reference_images
  * @property GenerationStatus $status
+ * @property FailureReason|null $failure_reason
  * @property Rates $rates
  * @property Money $estimate_minimum
  * @property Money $estimate_maximum
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response'])]
+#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason'])]
 class Generation extends Model
 {
     /** @use HasFactory<GenerationFactory> */
@@ -50,6 +52,7 @@ class Generation extends Model
             'quality' => Quality::class,
             'reference_images' => 'array',
             'status' => GenerationStatus::class,
+            'failure_reason' => FailureReason::class,
         ];
     }
 

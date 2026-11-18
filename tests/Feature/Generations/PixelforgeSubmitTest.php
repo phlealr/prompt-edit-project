@@ -1,8 +1,11 @@
 <?php
 
+use App\Enums\FailureReason;
 use App\Enums\GenerationStatus;
 use App\Enums\Quality;
 use App\Enums\Size;
+use App\ImageProviders\Exceptions\PromptRejected;
+use App\ImageProviders\Exceptions\SubmissionRefused;
 use App\ImageProviders\Pixelforge\PixelforgeImageProvider;
 use App\Models\Generation;
 use Illuminate\Http\Client\Request;
@@ -39,19 +42,20 @@ it('creates the generation with its UUID as idempotency key and its id in the me
         ]);
 });
 
-it('turns the accepted generation into a provider update', function (string $status, GenerationStatus $expected) {
+it('turns the accepted generation into a provider update', function (string $status, GenerationStatus $expected, ?FailureReason $reason) {
     Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeGeneration(['status' => $status]), 202)]);
 
     $update = app(PixelforgeImageProvider::class)->submit(Generation::factory()->create());
 
     expect($update->providerId)->toBe('gen_01JC2Z8Q4N6V0M3H7X5T9R2B1K')
         ->and($update->status)->toBe($expected)
+        ->and($update->failureReason)->toBe($reason)
         ->and($update->rawResponse)->toContain('"id":"gen_01JC2Z8Q4N6V0M3H7X5T9R2B1K"');
 })->with([
-    'accepted' => ['queued', GenerationStatus::Queued],
-    'idempotent replay, already processing' => ['processing', GenerationStatus::Processing],
-    'idempotent replay, already succeeded' => ['succeeded', GenerationStatus::Succeeded],
-    'idempotent replay, already failed' => ['failed', GenerationStatus::Failed],
+    'accepted' => ['queued', GenerationStatus::Queued, null],
+    'idempotent replay, already processing' => ['processing', GenerationStatus::Processing, null],
+    'idempotent replay, already succeeded' => ['succeeded', GenerationStatus::Succeeded, null],
+    'idempotent replay, already failed' => ['failed', GenerationStatus::Failed, FailureReason::ProviderFailed],
 ]);
 
 it('fetches the current rates bypassing the cache', function () {
@@ -67,3 +71,31 @@ it('fetches the current rates bypassing the cache', function () {
     expect($rates->outputTokens->nanodollars())->toBe(80_000_000_000);
     Http::assertSentCount(2);
 });
+
+/**
+ * A Pixelforge error body, as in docs/spec/pixelforge-api.md#errors.
+ */
+function pixelforgeError(string $type, string $code, string $message = 'The request was refused.'): array
+{
+    return ['error' => ['type' => $type, 'code' => $code, 'message' => $message]];
+}
+
+it('turns a content policy rejection into our PromptRejected exception', function () {
+    Http::fake(['pixelforge.test/v1/generations' => Http::response(
+        pixelforgeError('invalid_request_error', 'content_policy_violation', 'The prompt was rejected.'), 400,
+    )]);
+
+    app(PixelforgeImageProvider::class)->submit(Generation::factory()->create());
+})->throws(PromptRejected::class);
+
+it('turns errors waiting cannot fix into our SubmissionRefused exception, naming the provider\'s answer', function (int $status, string $type, string $code) {
+    Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeError($type, $code), $status)]);
+
+    expect(fn () => app(PixelforgeImageProvider::class)->submit(Generation::factory()->create()))
+        ->toThrow(SubmissionRefused::class, "{$status} {$code}");
+})->with([
+    'daily limit' => [429, 'rate_limit_error', 'daily_limit_exceeded'],
+    'invalid API key' => [401, 'authentication_error', 'invalid_api_key'],
+    'validation failed' => [422, 'invalid_request_error', 'validation_failed'],
+    'idempotency key reused' => [409, 'idempotency_error', 'idempotency_key_reused'],
+]);
