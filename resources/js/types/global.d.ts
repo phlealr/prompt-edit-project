@@ -23,6 +23,7 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             balance: Balance | null;
+            isOperator: boolean;
             [key: string]: unknown;
         };
         flashDataType: {

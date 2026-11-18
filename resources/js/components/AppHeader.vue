@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     BookOpen,
+    ChartColumn,
     CreditCard,
     Folder,
     History,
@@ -43,7 +44,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
 import { toUrl } from '@/lib/utils';
-import { credits, generate, history } from '@/routes';
+import { credits, generate, history, operatorReport } from '@/routes';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
 type Props = {
@@ -61,7 +62,8 @@ const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 const activeItemStyles =
     'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
 
-const mainNavItems: NavItem[] = [
+// Operators also see the operator report (ADR 0016).
+const mainNavItems = computed<NavItem[]>(() => [
     {
         title: 'Generate',
         href: generate(),
@@ -77,7 +79,16 @@ const mainNavItems: NavItem[] = [
         href: credits(),
         icon: CreditCard,
     },
-];
+    ...(page.props.isOperator
+        ? [
+              {
+                  title: 'Operator report',
+                  href: operatorReport(),
+                  icon: ChartColumn,
+              },
+          ]
+        : []),
+]);
 
 const rightNavItems: NavItem[] = [
     {

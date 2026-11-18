@@ -44,6 +44,8 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Operators see the operator report in the sidebar (ADR 0016).
+            'isOperator' => fn (): bool => $request->user()?->can('view-operator-report') ?? false,
             // Every signed-in page shows the balance in the sidebar, current on each load.
             'balance' => fn (): ?Balance => $request->user() === null
                 ? null

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import {
     BookOpen,
+    ChartColumn,
     CreditCard,
     FolderGit2,
     History,
@@ -21,10 +23,13 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { credits, generate, history } from '@/routes';
+import { credits, generate, history, operatorReport } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const page = usePage();
+
+// Operators also see the operator report (ADR 0016).
+const mainNavItems = computed<NavItem[]>(() => [
     {
         title: 'Generate',
         href: generate(),
@@ -40,7 +45,16 @@ const mainNavItems: NavItem[] = [
         href: credits(),
         icon: CreditCard,
     },
-];
+    ...(page.props.isOperator
+        ? [
+              {
+                  title: 'Operator report',
+                  href: operatorReport(),
+                  icon: ChartColumn,
+              },
+          ]
+        : []),
+]);
 
 const footerNavItems: NavItem[] = [
     {
