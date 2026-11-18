@@ -2,7 +2,8 @@
 
 namespace App\Actions\Generations;
 
-use App\ImageProviders\ImageProvider;
+use App\Enums\ImageProviderName;
+use App\ImageProviders\ImageProviders;
 use App\Models\Generation;
 use App\Models\WebhookEvent;
 use Illuminate\Support\Facades\Log;
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 class ApplyWebhookEvent
 {
     public function __construct(
-        private ImageProvider $provider,
+        private ImageProviders $providers,
         private ApplyProviderUpdate $applyProviderUpdate,
     ) {}
 
@@ -20,8 +21,14 @@ class ApplyWebhookEvent
      */
     public function handle(WebhookEvent $event): void
     {
-        $webhook = $this->provider->updateFromWebhook($event->payload);
+        // Read by the provider that sent it (ADR 0044).
+        $webhook = $this->providers->for(ImageProviderName::from($event->provider))->updateFromWebhook($event->payload);
         $generation = $webhook->generationId === null ? null : Generation::query()->find($webhook->generationId);
+
+        // A generation is handled only by the provider it was sent to (ADR 0044).
+        if ($generation !== null && $generation->provider->value !== $event->provider) {
+            $generation = null;
+        }
 
         if ($generation === null) {
             Log::warning('A webhook event names no generation of ours; nothing was applied.', [

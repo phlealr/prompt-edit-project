@@ -4,6 +4,7 @@ namespace App\ImageProviders\Pixelforge;
 
 use App\Enums\FailureReason;
 use App\Enums\GenerationStatus;
+use App\Enums\ImageProviderName;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Estimate;
@@ -51,6 +52,11 @@ final class PixelforgeImageProvider implements ImageProvider
     private const int WEBHOOK_TOLERANCE_SECONDS = 300;
 
     private const array RATE_TYPES = ['input_text_tokens', 'input_image_tokens', 'output_tokens', 'reasoning_tokens'];
+
+    public function name(): ImageProviderName
+    {
+        return ImageProviderName::Pixelforge;
+    }
 
     public function estimate(string $prompt, Size $size, Quality $quality, array $referenceImages): Estimate
     {

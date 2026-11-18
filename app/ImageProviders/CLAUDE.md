@@ -13,7 +13,13 @@ The boundary between the app and every external image provider (ADR 0014, ADR 00
   enums and `Money`, never provider names or units.
 - `Exceptions/`: our exceptions for provider outcomes (rate limited with its retry-after, overloaded,
   prompt rejected, …). Nothing outside this folder sees a provider error code.
-- `Pixelforge/`: the only implementation today, bound to the interface in a service provider.
+- `Pixelforge/`: the only implementation today.
+- `ImageProviders.php`: the registry. Each implementation is bound as `image-providers.<name>`; the
+  `ImageProvider` binding is the default from `services.image_provider`, used for new generations and
+  the estimate. Code acting on an existing generation uses `ImageProviders::for($generation->provider)`
+  (ADR 0044).
+- Adding a provider: an implementation folder, a case in `App\Enums\ImageProviderName`, and its
+  binding in `AppServiceProvider`. Its webhooks arrive on `/webhooks/<name>`.
 
 ## Rules for an implementation
 

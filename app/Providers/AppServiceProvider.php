@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\ImageProviders\ImageProvider;
+use App\ImageProviders\ImageProviders;
 use App\ImageProviders\Pixelforge\PixelforgeImageProvider;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -20,7 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(ImageProvider::class, PixelforgeImageProvider::class);
+        // One binding per provider; a generation is handled by the one it was sent to (ADR 0044).
+        $this->app->bind('image-providers.pixelforge', PixelforgeImageProvider::class);
+
+        // New generations and the estimate use the provider named in configuration.
+        $this->app->bind(ImageProvider::class, fn ($app): ImageProvider => $app->make(ImageProviders::class)->default());
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace Tests\Fakes;
 
 use App\Enums\GenerationStatus;
+use App\Enums\ImageProviderName;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Estimate;
@@ -93,6 +94,11 @@ final class FakeImageProvider implements ImageProvider
             ),
         );
         $this->currentRates = $this->estimate->rates;
+    }
+
+    public function name(): ImageProviderName
+    {
+        return ImageProviderName::Pixelforge;
     }
 
     public function estimate(string $prompt, Size $size, Quality $quality, array $referenceImages): Estimate

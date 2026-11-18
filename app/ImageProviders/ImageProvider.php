@@ -2,6 +2,7 @@
 
 namespace App\ImageProviders;
 
+use App\Enums\ImageProviderName;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Exceptions\GenerationNotFound;
@@ -19,6 +20,11 @@ use Symfony\Component\HttpFoundation\HeaderBag;
  */
 interface ImageProvider
 {
+    /**
+     * Which provider this is, recorded on every generation sent to it (ADR 0044).
+     */
+    public function name(): ImageProviderName;
+
     /**
      * @param  list<string>  $referenceImages  Their URLs; a URL given twice is billed twice.
      *

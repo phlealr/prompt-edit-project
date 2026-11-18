@@ -28,6 +28,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // The provider new generations go to (ADR 0044).
+    'image_provider' => env('IMAGE_PROVIDER', 'pixelforge'),
+
     'pixelforge' => [
         'base_url' => env('PIXELFORGE_BASE_URL', 'https://pixelforge.promptedit.dev/v1'),
         'api_key' => env('PIXELFORGE_API_KEY'),

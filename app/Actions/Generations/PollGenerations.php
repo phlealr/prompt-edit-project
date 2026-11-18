@@ -6,7 +6,7 @@ use App\Enums\GenerationStatus;
 use App\ImageProviders\Exceptions\GenerationNotFound;
 use App\ImageProviders\Exceptions\ProviderBusy;
 use App\ImageProviders\Exceptions\ProviderUnreachable;
-use App\ImageProviders\ImageProvider;
+use App\ImageProviders\ImageProviders;
 use App\ImageProviders\ProviderUpdate;
 use App\Models\Generation;
 use Illuminate\Support\Collection;
@@ -19,7 +19,7 @@ class PollGenerations
     private const int STUCK_AFTER_MINUTES = 60;
 
     public function __construct(
-        private ImageProvider $provider,
+        private ImageProviders $providers,
         private ApplyProviderUpdate $applyProviderUpdate,
         private SendGeneration $sendGeneration,
     ) {}
@@ -70,7 +70,7 @@ class PollGenerations
             return;
         }
 
-        $update = $this->provider->fetch($generation);
+        $update = $this->providers->for($generation->provider)->fetch($generation);
         $this->applyProviderUpdate->handle($generation, $update);
         $this->logIfStuck($update, $generation);
     }

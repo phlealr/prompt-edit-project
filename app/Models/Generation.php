@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CreditTransactionType;
 use App\Enums\FailureReason;
 use App\Enums\GenerationStatus;
+use App\Enums\ImageProviderName;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Rates;
@@ -24,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $uuid
  * @property int $user_id
+ * @property ImageProviderName $provider
  * @property string|null $provider_id
  * @property string|null $provider_response
  * @property bool $may_exist_at_provider
@@ -48,7 +50,7 @@ use Illuminate\Support\Carbon;
  * @property-read CreditTransaction|null $charge
  * @property-read CreditTransaction|null $hold
  */
-#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider', 'provider_cost', 'image_url', 'image_url_expires_at', 'started_at', 'completed_at', 'polled_at', 'submission_gave_up_at'])]
+#[Fillable(['uuid', 'user_id', 'provider', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider', 'provider_cost', 'image_url', 'image_url_expires_at', 'started_at', 'completed_at', 'polled_at', 'submission_gave_up_at'])]
 class Generation extends Model
 {
     /** @use HasFactory<GenerationFactory> */
@@ -70,6 +72,7 @@ class Generation extends Model
             'polled_at' => 'datetime',
             'submission_gave_up_at' => 'datetime',
             'status' => GenerationStatus::class,
+            'provider' => ImageProviderName::class,
             'failure_reason' => FailureReason::class,
         ];
     }

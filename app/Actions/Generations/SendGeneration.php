@@ -9,7 +9,7 @@ use App\ImageProviders\Exceptions\PromptRejected;
 use App\ImageProviders\Exceptions\ProviderBusy;
 use App\ImageProviders\Exceptions\ProviderUnreachable;
 use App\ImageProviders\Exceptions\SubmissionRefused;
-use App\ImageProviders\ImageProvider;
+use App\ImageProviders\ImageProviders;
 use App\ImageProviders\ProviderUpdate;
 use App\Models\Generation;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 class SendGeneration
 {
     public function __construct(
-        private ImageProvider $provider,
+        private ImageProviders $providers,
         private ApplyProviderUpdate $applyProviderUpdate,
     ) {}
 
@@ -37,16 +37,19 @@ class SendGeneration
             return;
         }
 
+        // The provider this generation was recorded with, even if new ones now go elsewhere.
+        $provider = $this->providers->for($generation->provider);
+
         // Once an attempt may have reached the provider, it may be creating the generation, so it
         // is never refused over a price change (ADR 0026, ADR 0040).
-        if (! $generation->may_exist_at_provider && ! $this->provider->currentRates()->equals($generation->rates)) {
+        if (! $generation->may_exist_at_provider && ! $provider->currentRates()->equals($generation->rates)) {
             $this->fail($generation, FailureReason::PriceChanged);
 
             return;
         }
 
         try {
-            $update = $this->provider->submit($generation);
+            $update = $provider->submit($generation);
         } catch (PromptRejected $exception) {
             $this->fail($generation, FailureReason::PromptRejected, $exception->getMessage());
 

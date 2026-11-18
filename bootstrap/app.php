@@ -8,6 +8,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -17,7 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         // The provider's webhook sits outside the web group: no session, no CSRF token (ADR 0010).
         then: function (): void {
-            Route::post('webhooks/pixelforge', ReceiveWebhookController::class)->name('webhooks.pixelforge');
+            // One route per provider, by name; an unknown name gets 404 (ADR 0044).
+            // SubstituteBindings turns {provider} into the enum; it brings no session and no CSRF.
+            Route::post('webhooks/{provider}', ReceiveWebhookController::class)
+                ->middleware(SubstituteBindings::class)
+                ->name('webhooks.receive');
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

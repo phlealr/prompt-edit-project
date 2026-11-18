@@ -71,6 +71,8 @@ Create classes with `php artisan make:*` and move nothing out of the place the t
 - Queue, database, files and cache are used only through Laravel's queue API, Eloquent and the query
   builder, `Storage` and `Cache`. PostgreSQL-specific SQL needs an ADR.
 - Our own classes get an interface only when a second implementation exists.
+- Every generation records its provider; code acting on an existing generation gets that provider
+  from `ImageProviders::for()`, never from the default binding (ADR 0044).
 
 ## Money (ADR 0005, ADR 0006, ADR 0007, ADR 0026)
 

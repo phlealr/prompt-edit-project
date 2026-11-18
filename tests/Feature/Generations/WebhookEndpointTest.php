@@ -31,7 +31,8 @@ it('records a valid event once by its id, dispatches a job to apply it, and answ
     postWebhook($body, pixelforgeSignature($body, now()->timestamp))->assertOk();
 
     $event = WebhookEvent::query()->sole();
-    expect($event->provider_event_id)->toBe('evt_1')
+    expect($event->provider)->toBe('pixelforge')
+        ->and($event->provider_event_id)->toBe('evt_1')
         ->and($event->payload)->toBe($body);
     Queue::assertPushed(ApplyWebhookEventJob::class, fn (ApplyWebhookEventJob $job) => $job->webhookEventId === $event->id);
     Queue::assertPushed(ApplyWebhookEventJob::class, 1);
@@ -81,7 +82,7 @@ it('accepts a timestamp exactly 5 minutes off', function () {
 });
 
 it('is registered outside the web middleware group, so no CSRF token or session is needed', function () {
-    $route = Route::getRoutes()->getByName('webhooks.pixelforge');
+    $route = Route::getRoutes()->getByName('webhooks.receive');
 
     expect($route)->not->toBeNull()
         ->and($route?->gatherMiddleware())->not->toContain('web')

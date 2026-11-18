@@ -60,6 +60,7 @@ function fakeImageProvider(): FakeImageProvider
 {
     $fake = new FakeImageProvider;
     app()->instance(ImageProvider::class, $fake);
+    app()->instance('image-providers.pixelforge', $fake);
 
     return $fake;
 }

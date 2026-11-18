@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\CreditTransactionType;
 use App\Enums\GenerationStatus;
+use App\Enums\ImageProviderName;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Rates;
@@ -29,6 +30,7 @@ class GenerationFactory extends Factory
         return [
             'uuid' => (string) Str::uuid(),
             'user_id' => User::factory(),
+            'provider' => ImageProviderName::Pixelforge,
             'prompt' => fake()->sentence(),
             'size' => Size::Square,
             'quality' => Quality::Medium,

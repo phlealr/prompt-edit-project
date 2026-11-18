@@ -30,8 +30,9 @@ from this list is either new language to reconsider or a gap to record with `rec
 
 - **Provider**: an external image-generation service the app sends generations to; Pixelforge is the
   current one, behind the provider interface. In code it is `ImageProvider`, because Laravel's
-  `app/Providers/` already means service providers. _Avoid_: vendor, API, Pixelforge (except for the
-  Pixelforge implementation itself). _Source_: ADR 0014, ADR 0020.
+  `app/Providers/` already means service providers. Each generation records its provider, which
+  handles everything that follows. _Avoid_: vendor, API, Pixelforge (except for the Pixelforge
+  implementation itself). _Source_: ADR 0014, ADR 0020, ADR 0044.
 - **Provider update**: the provider's view of a generation at one moment (status, result, cost),
   whether it came from a submission response, a webhook or a poll; applied to the generation by one
   action. _Avoid_: callback, sync, refresh. _Source_: ADR 0010.

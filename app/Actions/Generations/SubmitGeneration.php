@@ -50,6 +50,7 @@ class SubmitGeneration
             $generation = Generation::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'user_id' => $user->id,
+                'provider' => $this->provider->name(),
                 'prompt' => $prompt,
                 'size' => $size,
                 'quality' => $quality,
