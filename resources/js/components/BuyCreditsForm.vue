@@ -9,6 +9,12 @@ import { store } from '@/routes/credits';
 // Quick amounts only fill the field; only Buy credits buys (ADR 0029).
 const QUICK_AMOUNTS = [5, 10, 25];
 
+// Generate shows the purchase message itself, next to the balance, so it stays after this form
+// disappears.
+withDefaults(defineProps<{ showPurchaseMessage?: boolean }>(), {
+    showPurchaseMessage: true,
+});
+
 const page = usePage();
 const form = useForm({ amount: '' });
 
@@ -51,7 +57,10 @@ function buy(): void {
             <Button type="submit" :disabled="form.processing">
                 Buy credits
             </Button>
-            <p v-if="page.flash.purchase" class="text-sm font-medium">
+            <p
+                v-if="showPurchaseMessage && page.flash.purchase"
+                class="text-sm font-medium"
+            >
                 {{ page.flash.purchase }}
             </p>
         </div>

@@ -3,6 +3,7 @@ import { Head, useForm, useHttp, usePage } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Amount from '@/components/Amount.vue';
+import BuyCreditsForm from '@/components/BuyCreditsForm.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -55,10 +56,8 @@ const promptLength = computed(() => [...form.prompt].length);
 // The estimate comes from the server; the page only shows it (ADR 0011).
 const estimate = ref<Estimate | null>(null);
 
-// The latest estimate's balance, or else the one shared with every signed-in page.
-const shownBalance = computed(
-    () => estimate.value?.balance ?? page.props.balance?.amount,
-);
+// The balance shared with every signed-in page, current on each load and after a purchase.
+const shownBalance = computed(() => page.props.balance?.amount);
 const priceUnavailable = ref(false);
 const estimateError = ref<string | null>(null);
 // Set when pricing failed as the user pressed Generate; cleared once a price arrives again.
@@ -118,6 +117,9 @@ watch(
 );
 
 onMounted(requestEstimate);
+
+// A purchase made on this page changes the shared balance: ask again whether it covers the maximum.
+watch(() => page.props.balance?.amount.exact, requestEstimate);
 onBeforeUnmount(() => {
     leftPage = true;
     clearTimeout(retryTimer);
@@ -263,11 +265,10 @@ function removeReferenceImage(index: number): void {
             <div class="grid gap-1 rounded-md border p-4 text-sm">
                 <p>
                     Balance
-                    <Amount
-                        :amount="
-                            estimate?.balance ?? page.props.balance!.amount
-                        "
-                    />
+                    <Amount v-if="shownBalance" :amount="shownBalance" />
+                </p>
+                <p v-if="page.flash.purchase" class="font-medium">
+                    {{ page.flash.purchase }}
                 </p>
                 <p v-if="priceUnavailable" class="text-destructive">
                     Price unavailable right now
@@ -288,16 +289,6 @@ function removeReferenceImage(index: number): void {
             </div>
 
             <div>
-                <p
-                    v-if="
-                        estimate && !estimate.enoughCredits && !priceUnavailable
-                    "
-                    class="mb-3 text-sm text-destructive"
-                >
-                    Not enough credits: this can cost up to
-                    <Amount :amount="estimate.maximum" /> and your balance is
-                    <Amount :amount="estimate.balance" />
-                </p>
                 <InputError class="mb-3" :message="notEnoughCreditsError" />
                 <InputError
                     class="mb-3"
@@ -316,5 +307,18 @@ function removeReferenceImage(index: number): void {
                 </Button>
             </div>
         </form>
+
+        <!-- Outside the generate form: a form cannot hold another form. -->
+        <div
+            v-if="estimate && !estimate.enoughCredits && !priceUnavailable"
+            class="flex flex-col gap-3 rounded-md border border-destructive/50 p-4"
+        >
+            <p class="text-sm text-destructive">
+                Not enough credits: this can cost up to
+                <Amount :amount="estimate.maximum" /> and your balance is
+                <Amount :amount="estimate.balance" />
+            </p>
+            <BuyCreditsForm :show-purchase-message="false" />
+        </div>
     </div>
 </template>

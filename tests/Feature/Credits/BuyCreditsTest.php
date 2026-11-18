@@ -62,3 +62,11 @@ it('does not let a guest buy credits', function () {
 
     expect(CreditTransaction::query()->count())->toBe(0);
 });
+
+it('returns to Generate after buying there', function () {
+    $this->actingAs(User::factory()->create())
+        ->from(route('generate'))
+        ->post(route('credits.store'), ['amount' => '5'])
+        ->assertRedirect(route('generate'))
+        ->assertInertiaFlash('purchase', 'Added $5.0000 to your balance');
+});
