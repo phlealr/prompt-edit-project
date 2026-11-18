@@ -1,5 +1,6 @@
 import type { Directive } from 'vue';
 import type { Auth } from '@/types/auth';
+import type { Balance } from '@/types/money';
 import type { FlashToast } from '@/types/ui';
 
 // Extend ImportMeta interface for Vite...
@@ -21,6 +22,7 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            balance: Balance | null;
             [key: string]: unknown;
         };
         flashDataType: {

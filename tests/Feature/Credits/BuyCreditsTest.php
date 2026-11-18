@@ -13,7 +13,7 @@ it('shows the Credits page with the balance', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('credits/Index')
-            ->where('balance', ['user' => '$10.0000', 'exact' => '$10.000000000']));
+            ->where('balance.amount', ['user' => '$10.0000', 'exact' => '$10.000000000']));
 });
 
 it('buys 10 dollars as exactly one purchase of 10,000,000,000 nanodollars, and says so', function () {

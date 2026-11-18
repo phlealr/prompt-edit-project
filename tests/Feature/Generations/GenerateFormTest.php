@@ -29,7 +29,7 @@ it('shows the user\'s balance with 4 decimals and the exact amount', function ()
     $this->actingAs($user)
         ->get(route('generate'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('balance', ['user' => '$5.1235', 'exact' => '$5.123456789'])
+            ->where('balance.amount', ['user' => '$5.1235', 'exact' => '$5.123456789'])
         );
 });
 

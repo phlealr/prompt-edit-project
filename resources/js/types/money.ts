@@ -6,3 +6,11 @@ export type Money = {
     user: string;
     exact: string;
 };
+
+/**
+ * The user's balance, shared with every signed-in page (App\Data\Credits\Balance).
+ */
+export type Balance = {
+    amount: Money;
+    belowZero: boolean;
+};

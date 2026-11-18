@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Actions\Credits\CalculateBalance;
+use App\Data\Credits\Balance;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -42,6 +44,10 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Every signed-in page shows the balance in the sidebar, current on each load.
+            'balance' => fn (): ?Balance => $request->user() === null
+                ? null
+                : Balance::of(app(CalculateBalance::class)->handle($request->user())),
         ];
     }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm, useHttp } from '@inertiajs/vue3';
+import { Head, useForm, useHttp, usePage } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Amount from '@/components/Amount.vue';
@@ -18,7 +18,6 @@ const props = defineProps<{
     qualities: string[];
     defaultSize: string;
     defaultQuality: string;
-    balance: Money;
 }>();
 
 defineOptions({
@@ -26,6 +25,8 @@ defineOptions({
         breadcrumbs: [{ title: 'Generate', href: generate() }],
     },
 });
+
+const page = usePage();
 
 const MAX_PROMPT_LENGTH = 4000;
 const MAX_REFERENCE_IMAGES = 4;
@@ -53,6 +54,11 @@ const promptLength = computed(() => [...form.prompt].length);
 
 // The estimate comes from the server; the page only shows it (ADR 0011).
 const estimate = ref<Estimate | null>(null);
+
+// The latest estimate's balance, or else the one shared with every signed-in page.
+const shownBalance = computed(
+    () => estimate.value?.balance ?? page.props.balance?.amount,
+);
 const priceUnavailable = ref(false);
 const estimateError = ref<string | null>(null);
 // Set when pricing failed as the user pressed Generate; cleared once a price arrives again.
@@ -257,7 +263,11 @@ function removeReferenceImage(index: number): void {
             <div class="grid gap-1 rounded-md border p-4 text-sm">
                 <p>
                     Balance
-                    <Amount :amount="estimate?.balance ?? balance" />
+                    <Amount
+                        :amount="
+                            estimate?.balance ?? page.props.balance!.amount
+                        "
+                    />
                 </p>
                 <p v-if="priceUnavailable" class="text-destructive">
                     Price unavailable right now

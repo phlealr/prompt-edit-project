@@ -33,7 +33,8 @@ const anyNotFinal = computed(() =>
 
 const reload = usePoll(
     RELOAD_INTERVAL_MS,
-    { only: ['generations'] },
+    // The balance comes too, so a charge shows in the sidebar without any action.
+    { only: ['generations', 'balance'] },
     { autoStart: false, mode: 'rest' },
 );
 

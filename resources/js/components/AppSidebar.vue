@@ -8,6 +8,7 @@ import {
     Sparkles,
 } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
+import NavBalance from '@/components/NavBalance.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -74,6 +75,7 @@ const footerNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
+            <NavBalance />
             <NavFooter :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>
