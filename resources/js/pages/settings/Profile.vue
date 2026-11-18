@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,9 @@ defineOptions({
         ],
     },
 });
+
+// locked: the shared operator account, which nobody can change.
+const props = defineProps<{ locked: boolean }>();
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -36,45 +40,56 @@ const user = computed(() => page.props.auth.user);
             description="Update your name and email address"
         />
 
+        <Alert v-if="props.locked">
+            <AlertDescription>
+                This is the shared operator account, so its name, email and
+                password cannot be changed.
+            </AlertDescription>
+        </Alert>
+
         <Form
             v-bind="ProfileController.update.form()"
             class="space-y-6"
             v-slot="{ errors, processing }"
         >
-            <div class="grid gap-2">
-                <Label for="name">Name</Label>
-                <Input
-                    id="name"
-                    class="mt-1 block w-full"
-                    name="name"
-                    :default-value="user.name"
-                    required
-                    autocomplete="name"
-                    placeholder="Full name"
-                />
-                <InputError class="mt-2" :message="errors.name" />
-            </div>
+            <fieldset :disabled="props.locked" class="space-y-6">
+                <div class="grid gap-2">
+                    <Label for="name">Name</Label>
+                    <Input
+                        id="name"
+                        class="mt-1 block w-full"
+                        name="name"
+                        :default-value="user.name"
+                        required
+                        autocomplete="name"
+                        placeholder="Full name"
+                    />
+                    <InputError class="mt-2" :message="errors.name" />
+                </div>
 
-            <div class="grid gap-2">
-                <Label for="email">Email address</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    name="email"
-                    :default-value="user.email"
-                    required
-                    autocomplete="username"
-                    placeholder="Email address"
-                />
-                <InputError class="mt-2" :message="errors.email" />
-            </div>
+                <div class="grid gap-2">
+                    <Label for="email">Email address</Label>
+                    <Input
+                        id="email"
+                        type="email"
+                        class="mt-1 block w-full"
+                        name="email"
+                        :default-value="user.email"
+                        required
+                        autocomplete="username"
+                        placeholder="Email address"
+                    />
+                    <InputError class="mt-2" :message="errors.email" />
+                </div>
 
-            <div class="flex items-center gap-4">
-                <Button :disabled="processing" data-test="update-profile-button"
-                    >Save</Button
-                >
-            </div>
+                <div class="flex items-center gap-4">
+                    <Button
+                        :disabled="processing"
+                        data-test="update-profile-button"
+                        >Save</Button
+                    >
+                </div>
+            </fieldset>
         </Form>
     </div>
 </template>

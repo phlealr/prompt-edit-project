@@ -4,6 +4,7 @@ use App\Models\User;
 use Database\Seeders\OperatorSeeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Inertia\Testing\AssertableInertia as Assert;
 
 it('creates the default operator from configuration', function () {
     config()->set('operator.email', 'reviewer@example.test');
@@ -84,4 +85,19 @@ it('still lets every other user change their own profile', function () {
         ->assertSessionHasNoErrors();
 
     expect($user->fresh()?->name)->toBe('New name');
+});
+
+it('tells the shared operator on the settings pages that the account cannot be changed', function () {
+    $this->seed(OperatorSeeder::class);
+    $operator = User::query()->where('email', config('operator.email'))->firstOrFail();
+    $other = User::factory()->create();
+
+    $this->withSession(['auth.password_confirmed_at' => time()]);
+
+    foreach (['profile.edit', 'security.edit'] as $route) {
+        $this->actingAs($operator)->get(route($route))
+            ->assertInertia(fn (Assert $page) => $page->where('locked', true));
+        $this->actingAs($other)->get(route($route))
+            ->assertInertia(fn (Assert $page) => $page->where('locked', false));
+    }
 });

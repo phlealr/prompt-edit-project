@@ -18,6 +18,7 @@ class ProfileController extends Controller
     {
         return Inertia::render('settings/Profile', [
             'status' => $request->session()->get('status'),
+            'locked' => $request->user()->isSharedOperator(),
         ]);
     }
 
