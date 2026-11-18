@@ -1,6 +1,7 @@
 <?php
 
 use App\ImageProviders\ImageProvider;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Fakes\FakeImageProvider;
 use Tests\TestCase;
@@ -19,6 +20,12 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->in('Feature');
+
+// Tests that run several processes against the database need committed data, so they truncate the
+// tables instead of wrapping each test in a transaction.
+pest()->extend(TestCase::class)
+    ->use(DatabaseTruncation::class)
+    ->in('Concurrency');
 
 /*
 |--------------------------------------------------------------------------

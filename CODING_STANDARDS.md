@@ -33,7 +33,7 @@ The structure is layer-first; every layer uses the same **areas**: `Generations`
 | Statuses, failure reasons, sizes, qualities | `app/Enums/` |
 | Models | `app/Models/` |
 | Pages | `resources/js/pages/<area>/` |
-| Tests | `tests/Feature/<Area>/`, `tests/Unit/<Area>/`, architecture tests in `tests/Arch/` |
+| Tests | `tests/Feature/<Area>/`, `tests/Unit/<Area>/`, multi-process tests in `tests/Concurrency/<Area>/` (ADR 0039), architecture tests in `tests/Arch/` |
 
 Create classes with `php artisan make:*` and move nothing out of the place the table gives.
 

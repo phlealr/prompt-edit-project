@@ -43,6 +43,11 @@ final readonly class Money implements JsonSerializable
         return $this->nanodollars;
     }
 
+    public function negate(): self
+    {
+        return new self(-$this->nanodollars);
+    }
+
     /**
      * The charge for this provider cost: cost × 5 / 4, rounded up to a whole nanodollar (ADR 0005).
      */

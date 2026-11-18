@@ -9,6 +9,8 @@ suite.
 - `Feature/<Area>/`: tests through an HTTP route, a job or an action with the database. Most tests
   live here. Every file in `Feature/` gets `RefreshDatabase` from `Pest.php`.
 - `Unit/<Area>/`: tests of a class with no database or framework (for example `Money`).
+- `Concurrency/<Area>/`: tests that fork several processes against committed data, using
+  `DatabaseTruncation` and the `pcntl` and `posix` extensions (ADR 0039).
 - `Arch/`: Pest `arch()` tests for the "Layers" and "Boundaries" rules of `CODING_STANDARDS.md`.
 - The starter kit's `Feature/Auth/` and `Feature/Settings/` tests stay as they are, and keep passing.
 

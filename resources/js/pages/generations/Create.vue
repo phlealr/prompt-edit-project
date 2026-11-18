@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { generate } from '@/routes';
 import { estimate as estimateRoute } from '@/routes/generate';
+import { store } from '@/routes/generations';
 import type { Money } from '@/types';
 
 const props = defineProps<{
@@ -53,6 +54,8 @@ const promptLength = computed(() => [...form.prompt].length);
 const estimate = ref<Estimate | null>(null);
 const priceUnavailable = ref(false);
 const estimateError = ref<string | null>(null);
+// Set when pricing failed as the user pressed Generate; cleared once a price arrives again.
+const submissionPriceError = ref<string | null>(null);
 const estimateRequest = useHttp<Record<string, never>, Estimate>({});
 estimateRequest.transform(() => form.data());
 
@@ -80,6 +83,7 @@ function requestEstimate(): void {
     void estimateRequest
         .submit(estimateRoute(), {
             onSuccess: (response) => {
+                submissionPriceError.value = null;
                 estimate.value = response;
                 estimateError.value = null;
                 priceUnavailable.value = false;
@@ -113,6 +117,30 @@ onBeforeUnmount(() => {
     estimateRequest.cancel();
 });
 
+// The server names a reference image's error by its position: "reference_images.0".
+function referenceImageError(index: number): string | undefined {
+    return (form.errors as Record<string, string | undefined>)[
+        `reference_images.${index}`
+    ];
+}
+
+// The balance no longer covers the maximum at the server (another tab spent it).
+const notEnoughCreditsError = computed(
+    () => (form.errors as { generation?: string }).generation,
+);
+
+function submit(): void {
+    form.post(store().url, {
+        // Pricing failed at submission: nothing was created, and the form waits for a price again.
+        onError: (errors) => {
+            if (errors.price) {
+                submissionPriceError.value = errors.price;
+                markPriceUnavailable();
+            }
+        },
+    });
+}
+
 function addReferenceImage(): void {
     if (form.reference_images.length < MAX_REFERENCE_IMAGES) {
         form.reference_images.push('');
@@ -133,7 +161,7 @@ function removeReferenceImage(index: number): void {
             description="Describe the image, pick its size and quality, and optionally add reference images to guide the style."
         />
 
-        <form class="flex flex-col gap-6" @submit.prevent>
+        <form class="flex flex-col gap-6" @submit.prevent="submit">
             <div class="grid gap-2">
                 <div class="flex items-center justify-between">
                     <Label for="prompt">Prompt</Label>
@@ -191,21 +219,24 @@ function removeReferenceImage(index: number): void {
                 <div
                     v-for="(_url, index) in form.reference_images"
                     :key="index"
-                    class="flex gap-2"
+                    class="grid gap-1"
                 >
-                    <Input
-                        v-model="form.reference_images[index]"
-                        type="url"
-                        :placeholder="REFERENCE_IMAGE_PLACEHOLDER"
-                        :aria-label="`Reference image ${index + 1}`"
-                    />
-                    <Button
-                        type="button"
-                        variant="outline"
-                        @click="removeReferenceImage(index)"
-                    >
-                        Remove
-                    </Button>
+                    <div class="flex gap-2">
+                        <Input
+                            v-model="form.reference_images[index]"
+                            type="url"
+                            :placeholder="REFERENCE_IMAGE_PLACEHOLDER"
+                            :aria-label="`Reference image ${index + 1}`"
+                        />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            @click="removeReferenceImage(index)"
+                        >
+                            Remove
+                        </Button>
+                    </div>
+                    <InputError :message="referenceImageError(index)" />
                 </div>
                 <InputError :message="form.errors.reference_images" />
                 <div>
@@ -256,10 +287,18 @@ function removeReferenceImage(index: number): void {
                     <Amount :amount="estimate.maximum" /> and your balance is
                     <Amount :amount="estimate.balance" />
                 </p>
+                <InputError class="mb-3" :message="notEnoughCreditsError" />
+                <InputError
+                    class="mb-3"
+                    :message="submissionPriceError ?? undefined"
+                />
                 <Button
                     type="submit"
                     :disabled="
-                        priceUnavailable || !estimate || !estimate.enoughCredits
+                        form.processing ||
+                        priceUnavailable ||
+                        !estimate ||
+                        !estimate.enoughCredits
                     "
                 >
                     Generate

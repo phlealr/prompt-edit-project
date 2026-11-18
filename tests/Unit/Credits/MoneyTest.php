@@ -54,3 +54,7 @@ it('serializes to the user format and the exact amount for the frontend', functi
     expect(json_encode(Money::fromNanodollars(467_343_750)))
         ->toBe('{"user":"$0.4673","exact":"$0.467343750"}');
 });
+
+it('negates an amount, as a hold of the estimate\'s maximum', function () {
+    expect(Money::fromNanodollars(467_343_750)->negate()->nanodollars())->toBe(-467_343_750);
+});
