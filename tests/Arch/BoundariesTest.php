@@ -12,3 +12,12 @@ arch('only the Pixelforge implementation knows Pixelforge')
 arch('no web request sends a generation to the provider')
     ->expect('App\Http')
     ->not->toUse(['App\Actions\Generations\SendGeneration', 'App\Jobs\Generations\SubmitGenerationJob']);
+
+arch('submission, webhooks and polling all change generations through the one action')
+    ->expect([
+        'App\Actions\Generations\SendGeneration',
+        'App\Actions\Generations\ApplyWebhookEvent',
+        'App\Actions\Generations\PollGenerations',
+        'App\Jobs\Generations\SubmitGenerationJob',
+    ])
+    ->toUse('App\Actions\Generations\ApplyProviderUpdate');

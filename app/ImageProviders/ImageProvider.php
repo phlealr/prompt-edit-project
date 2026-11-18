@@ -4,8 +4,11 @@ namespace App\ImageProviders;
 
 use App\Enums\Quality;
 use App\Enums\Size;
+use App\ImageProviders\Exceptions\GenerationNotFound;
 use App\ImageProviders\Exceptions\InvalidWebhook;
 use App\ImageProviders\Exceptions\PricingUnavailable;
+use App\ImageProviders\Exceptions\ProviderBusy;
+use App\ImageProviders\Exceptions\ProviderUnreachable;
 use App\Models\Generation;
 use Symfony\Component\HttpFoundation\HeaderBag;
 
@@ -33,6 +36,15 @@ interface ImageProvider
      * metadata (ADR 0009). Sending it again returns the same generation as it is now.
      */
     public function submit(Generation $generation): ProviderUpdate;
+
+    /**
+     * The generation as the provider sees it now, by the provider's id (ADR 0027).
+     *
+     * @throws GenerationNotFound
+     * @throws ProviderBusy
+     * @throws ProviderUnreachable
+     */
+    public function fetch(Generation $generation): ProviderUpdate;
 
     /**
      * Checks that a webhook request comes from the provider, on its raw body, and reads which event

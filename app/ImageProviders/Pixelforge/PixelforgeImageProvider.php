@@ -7,6 +7,7 @@ use App\Enums\GenerationStatus;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Estimate;
+use App\ImageProviders\Exceptions\GenerationNotFound;
 use App\ImageProviders\Exceptions\InvalidWebhook;
 use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\ImageProviders\Exceptions\PromptRejected;
@@ -88,6 +89,49 @@ final class PixelforgeImageProvider implements ImageProvider
             return $this->providerUpdateFrom(json_decode($response->body()), $response->body());
         } catch (UnexpectedValueException|TypeError $exception) {
             throw new ProviderUnreachable("Pixelforge's answer could not be read: {$response->body()}", previous: $exception);
+        }
+    }
+
+    public function fetch(Generation $generation): ProviderUpdate
+    {
+        try {
+            $response = $this->http()
+                ->withToken((string) config('services.pixelforge.api_key'))
+                ->get("generations/{$generation->provider_id}")
+                ->throw(fn (Response $response) => $this->throwFetchError($response));
+        } catch (ConnectionException $exception) {
+            throw new ProviderUnreachable($exception->getMessage(), previous: $exception);
+        }
+
+        // An answer we cannot read is tried again on the next poll.
+        try {
+            return $this->providerUpdateFrom(json_decode($response->body()), $response->body());
+        } catch (UnexpectedValueException|TypeError $exception) {
+            throw new ProviderUnreachable("Pixelforge's answer could not be read: {$response->body()}", previous: $exception);
+        }
+    }
+
+    /**
+     * Maps a failed `GET /v1/generations/{id}` to our exceptions (docs/spec/pixelforge-api.md#errors).
+     *
+     * @throws GenerationNotFound
+     * @throws ProviderBusy
+     * @throws ProviderUnreachable
+     */
+    private function throwFetchError(Response $response): void
+    {
+        $answer = "Pixelforge answered {$response->status()}: {$response->body()}";
+
+        if ($response->status() === 404) {
+            throw new GenerationNotFound($answer);
+        }
+
+        if ($response->status() === 429) {
+            throw new ProviderBusy((int) $response->header('Retry-After'), $answer);
+        }
+
+        if ($response->serverError()) {
+            throw new ProviderUnreachable($answer);
         }
     }
 

@@ -56,6 +56,12 @@ class SendGeneration
 
             throw $exception;
         } catch (SubmissionRefused $exception) {
+            // An earlier attempt may have created it: only a generation the provider certainly
+            // does not have is failed (ADR 0042). This one is retried instead.
+            if ($generation->may_exist_at_provider) {
+                throw new ProviderUnreachable($exception->getMessage(), previous: $exception);
+            }
+
             Log::error('The provider refused a generation; it fails without retrying.', [
                 'generation' => $generation->id,
                 'answer' => $exception->getMessage(),

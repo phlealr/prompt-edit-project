@@ -43,6 +43,19 @@ final class FakeImageProvider implements ImageProvider
      */
     public array $submitFailures = [];
 
+    /** The status fetch() answers with. */
+    public GenerationStatus $fetchStatus = GenerationStatus::Processing;
+
+    /**
+     * Thrown by the next fetch() calls, one per call, before it answers normally.
+     *
+     * @var list<Throwable>
+     */
+    public array $fetchFailures = [];
+
+    /** @var list<string> The provider ids of every fetch() call. */
+    public array $fetched = [];
+
     /** @var list<string> The idempotency keys of every submit() call. */
     public array $submitted = [];
 
@@ -126,5 +139,17 @@ final class FakeImageProvider implements ImageProvider
     public function updateFromWebhook(string $payload): WebhookUpdate
     {
         return app(PixelforgeImageProvider::class)->updateFromWebhook($payload);
+    }
+
+    public function fetch(Generation $generation): ProviderUpdate
+    {
+        $this->fetched[] = (string) $generation->provider_id;
+        $failure = array_shift($this->fetchFailures);
+
+        if ($failure !== null) {
+            throw $failure;
+        }
+
+        return new ProviderUpdate($generation->provider_id, $this->fetchStatus, '{"fake":true}');
     }
 }

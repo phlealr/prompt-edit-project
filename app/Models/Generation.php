@@ -30,6 +30,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $image_url_expires_at
  * @property Carbon|null $started_at
  * @property Carbon|null $completed_at
+ * @property Carbon|null $polled_at
+ * @property Carbon|null $submission_gave_up_at
  * @property string $prompt
  * @property Size $size
  * @property Quality $quality
@@ -42,7 +44,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider', 'provider_cost', 'image_url', 'image_url_expires_at', 'started_at', 'completed_at'])]
+#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider', 'provider_cost', 'image_url', 'image_url_expires_at', 'started_at', 'completed_at', 'polled_at', 'submission_gave_up_at'])]
 class Generation extends Model
 {
     /** @use HasFactory<GenerationFactory> */
@@ -61,6 +63,8 @@ class Generation extends Model
             'image_url_expires_at' => 'datetime',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'polled_at' => 'datetime',
+            'submission_gave_up_at' => 'datetime',
             'status' => GenerationStatus::class,
             'failure_reason' => FailureReason::class,
         ];

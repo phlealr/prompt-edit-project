@@ -56,6 +56,7 @@ class SubmitGenerationJob implements ShouldQueue
         $generation = Generation::query()->findOrFail($this->generationId);
 
         if ($generation->may_exist_at_provider) {
+            $generation->update(['submission_gave_up_at' => now()]);
             Log::error('The submission job gave up on a generation the provider may have created; polling will re-send it.', [
                 'generation' => $generation->id,
                 'last_error' => $exception?->getMessage(),

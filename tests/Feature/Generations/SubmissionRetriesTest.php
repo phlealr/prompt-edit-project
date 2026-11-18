@@ -5,6 +5,7 @@ use App\Enums\FailureReason;
 use App\Enums\GenerationStatus;
 use App\ImageProviders\Exceptions\ProviderBusy;
 use App\ImageProviders\Exceptions\ProviderUnreachable;
+use App\ImageProviders\Exceptions\SubmissionRefused;
 use App\ImageProviders\Rates;
 use App\Jobs\Generations\SubmitGenerationJob;
 use App\Models\CreditTransaction;
@@ -139,4 +140,14 @@ it('leaves a generation that may exist at the provider pending with its hold whe
         ->and(CreditTransaction::query()->where('generation_id', $generation->id)->pluck('type')->all())
         ->toBe([CreditTransactionType::Hold]);
     Log::shouldHaveReceived('error')->once();
+});
+
+it('keeps a generation that may exist at the provider when a later attempt is refused, and retries it', function () {
+    $generation = Generation::factory()->withHold()->create(['may_exist_at_provider' => true]);
+    $this->provider->submitFailures = [new SubmissionRefused('Pixelforge answered 401 invalid_api_key.')];
+
+    runSubmissionAttempt($generation, 3)->assertReleased(delay: 20);
+
+    expect($generation->fresh()?->status)->toBe(GenerationStatus::Pending)
+        ->and(CreditTransaction::query()->where('generation_id', $generation->id)->count())->toBe(1);
 });
