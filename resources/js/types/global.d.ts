@@ -25,6 +25,7 @@ declare module '@inertiajs/core' {
         };
         flashDataType: {
             status?: string;
+            purchase?: string;
             toast?: FlashToast;
         };
     }

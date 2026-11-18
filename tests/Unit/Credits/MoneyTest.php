@@ -58,3 +58,7 @@ it('serializes to the user format and the exact amount for the frontend', functi
 it('negates an amount, as a hold of the estimate\'s maximum', function () {
     expect(Money::fromNanodollars(467_343_750)->negate()->nanodollars())->toBe(-467_343_750);
 });
+
+it('makes an amount of whole dollars', function () {
+    expect(Money::fromWholeDollars(10)->nanodollars())->toBe(10_000_000_000);
+});

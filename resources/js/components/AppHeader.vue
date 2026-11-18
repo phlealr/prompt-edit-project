@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, History, Menu, Search, Sparkles } from '@lucide/vue';
+import {
+    BookOpen,
+    CreditCard,
+    Folder,
+    History,
+    Menu,
+    Search,
+    Sparkles,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
@@ -35,7 +43,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
 import { toUrl } from '@/lib/utils';
-import { generate, history } from '@/routes';
+import { credits, generate, history } from '@/routes';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
 type Props = {
@@ -63,6 +71,11 @@ const mainNavItems: NavItem[] = [
         title: 'History',
         href: history(),
         icon: History,
+    },
+    {
+        title: 'Credits',
+        href: credits(),
+        icon: CreditCard,
     },
 ];
 

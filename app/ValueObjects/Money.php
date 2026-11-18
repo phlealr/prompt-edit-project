@@ -22,6 +22,11 @@ final readonly class Money implements JsonSerializable
         return new self($nanodollars);
     }
 
+    public static function fromWholeDollars(int $dollars): self
+    {
+        return new self($dollars * self::NANODOLLARS_PER_DOLLAR);
+    }
+
     /**
      * Reads a decimal dollar string such as "0.373875000" by its digits, never through a float.
      */

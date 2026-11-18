@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Credits\BuyCreditsController;
+use App\Http\Controllers\Credits\ShowCreditsController;
 use App\Http\Controllers\Generations\CreateGenerationController;
 use App\Http\Controllers\Generations\EstimateGenerationController;
 use App\Http\Controllers\Generations\ListGenerationsController;
@@ -12,5 +14,7 @@ Route::get('generate', CreateGenerationController::class)->name('generate');
 Route::post('generate/estimate', EstimateGenerationController::class)->name('generate.estimate');
 Route::post('generations', StoreGenerationController::class)->name('generations.store');
 Route::get('history', ListGenerationsController::class)->name('history');
+Route::get('credits', ShowCreditsController::class)->name('credits');
+Route::post('credits', BuyCreditsController::class)->name('credits.store');
 
 require __DIR__.'/settings.php';
