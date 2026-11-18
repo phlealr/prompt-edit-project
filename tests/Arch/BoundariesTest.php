@@ -21,3 +21,7 @@ arch('submission, webhooks and polling all change generations through the one ac
         'App\Jobs\Generations\SubmitGenerationJob',
     ])
     ->toUse('App\Actions\Generations\ApplyProviderUpdate');
+
+arch('the history page reads only our database')
+    ->expect(['App\Http\Controllers\Generations\ListGenerationsController', 'App\Actions\Generations\ListGenerations'])
+    ->not->toUse('App\ImageProviders\ImageProvider');

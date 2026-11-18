@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage, usePoll } from '@inertiajs/vue3';
+import { computed, watch } from 'vue';
 import GenerationCardView from '@/components/GenerationCardView.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { generate, history } from '@/routes';
 import type { GenerationCard, Paginated } from '@/types';
 
-defineProps<{
+const props = defineProps<{
     generations: Paginated<GenerationCard>;
 }>();
 
@@ -17,6 +18,30 @@ defineOptions({
 });
 
 const page = usePage();
+
+// While any card on this page is not final, its data is reloaded from our server every 3 seconds
+// (ADR 0028); the cards update in place, and the page and scroll position are kept. 'rest' waits
+// 3 seconds after each answer, so slow answers never pile up.
+const RELOAD_INTERVAL_MS = 3000;
+
+const anyNotFinal = computed(() =>
+    props.generations.data.some(
+        (generation) =>
+            generation.status !== 'succeeded' && generation.status !== 'failed',
+    ),
+);
+
+const reload = usePoll(
+    RELOAD_INTERVAL_MS,
+    { only: ['generations'] },
+    { autoStart: false, mode: 'rest' },
+);
+
+watch(
+    anyNotFinal,
+    (shouldReload) => (shouldReload ? reload.start() : reload.stop()),
+    { immediate: true },
+);
 </script>
 
 <template>

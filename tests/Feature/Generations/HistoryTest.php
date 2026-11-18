@@ -5,6 +5,7 @@ use App\Enums\FailureReason;
 use App\Enums\GenerationStatus;
 use App\Enums\Quality;
 use App\Enums\Size;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\CreditTransaction;
 use App\Models\Generation;
 use App\Models\User;
@@ -151,4 +152,26 @@ it('gives other cards no image', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->where('generations.data.0.imageUrl', null)
             ->where('generations.data.0.imageUrlExpiresAt', null));
+});
+
+it('answers a reload from our database only, never calling the provider', function () {
+    $provider = fakeImageProvider();
+    $user = User::factory()->create();
+    Generation::factory()->for($user)->create(['status' => GenerationStatus::Processing, 'provider_id' => 'gen_pf_1']);
+    $version = app(HandleInertiaRequests::class)->version(request());
+
+    $this->actingAs($user)
+        ->withHeaders([
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => (string) $version,
+            'X-Inertia-Partial-Component' => 'generations/Index',
+            'X-Inertia-Partial-Data' => 'generations',
+        ])
+        ->get(route('history', ['page' => 1]))
+        ->assertOk()
+        ->assertJsonPath('props.generations.data.0.status', 'processing');
+
+    expect($provider->fetched)->toBe([])
+        ->and($provider->submitted)->toBe([])
+        ->and($provider->currentRatesCalls)->toBe(0);
 });
