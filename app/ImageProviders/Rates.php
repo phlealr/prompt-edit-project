@@ -16,4 +16,15 @@ final readonly class Rates
         public Money $outputTokens,
         public Money $reasoningTokens,
     ) {}
+
+    /**
+     * Equal when every rate is the same amount, however the provider wrote it (ADR 0035).
+     */
+    public function equals(self $other): bool
+    {
+        return $this->inputTextTokens->nanodollars() === $other->inputTextTokens->nanodollars()
+            && $this->inputImageTokens->nanodollars() === $other->inputImageTokens->nanodollars()
+            && $this->outputTokens->nanodollars() === $other->outputTokens->nanodollars()
+            && $this->reasoningTokens->nanodollars() === $other->reasoningTokens->nanodollars();
+    }
 }

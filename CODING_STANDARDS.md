@@ -30,6 +30,7 @@ The structure is layer-first; every layer uses the same **areas**: `Generations`
 | Queued entry points | `app/Jobs/<Area>/` |
 | Provider boundary | `app/ImageProviders/` (interface and shared types), `Exceptions/`, `Pixelforge/` |
 | Money | `app/ValueObjects/Money.php` |
+| Data passed between our classes and to pages | `app/Data/<Area>/`, readonly classes (ADR 0041) |
 | Statuses, failure reasons, sizes, qualities | `app/Enums/` |
 | Models | `app/Models/` |
 | Pages | `resources/js/pages/<area>/` |
@@ -48,6 +49,16 @@ Create classes with `php artisan make:*` and move nothing out of the place the t
 - Configuration uses Laravel 13 PHP attributes wherever one exists: `#[Tries]`, `#[Backoff]`,
   `#[Timeout]` on jobs; `#[Middleware]`, `#[Authorize]` on controllers; `#[Fillable]`, `#[Hidden]`,
   `#[Table]` on models.
+
+## Data (ADR 0041)
+
+- Data is a typed object: a readonly class with named, typed properties. No parameter, return value,
+  property, cache value or page prop is an array shape (`array{…}`) or an associative array carrying
+  data.
+- Arrays are only lists (`list<T>`) or what the framework requires: validation rules, casts and
+  multi-column attribute setters, config, the outer map of `Inertia::render()` props,
+  `jsonSerialize()`, request payloads, factory attributes.
+- A provider's decoded JSON is read once, where it arrives, and mapped straight into typed objects.
 
 ## Boundaries (ADR 0014)
 

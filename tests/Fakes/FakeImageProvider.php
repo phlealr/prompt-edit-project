@@ -2,12 +2,15 @@
 
 namespace Tests\Fakes;
 
+use App\Enums\GenerationStatus;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Estimate;
 use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\ImageProviders\ImageProvider;
+use App\ImageProviders\ProviderUpdate;
 use App\ImageProviders\Rates;
+use App\Models\Generation;
 use App\ValueObjects\Money;
 
 /**
@@ -20,8 +23,26 @@ final class FakeImageProvider implements ImageProvider
 
     public bool $pricingUnavailable = false;
 
-    /** @var array{prompt: string, size: string, quality: string, reference_images: list<string>}|null */
-    public ?array $estimatedFor = null;
+    /** The rates currentRates() answers; by default the estimate's own. */
+    public Rates $currentRates;
+
+    public int $currentRatesCalls = 0;
+
+    /** The status submit() answers with. */
+    public GenerationStatus $submitStatus = GenerationStatus::Queued;
+
+    /** @var list<string> The idempotency keys of every submit() call. */
+    public array $submitted = [];
+
+    /** The input of the last estimate() call. */
+    public ?string $estimatedPrompt = null;
+
+    public ?Size $estimatedSize = null;
+
+    public ?Quality $estimatedQuality = null;
+
+    /** @var list<string>|null */
+    public ?array $estimatedReferenceImages = null;
 
     public function __construct()
     {
@@ -35,6 +56,7 @@ final class FakeImageProvider implements ImageProvider
                 Money::fromDecimalString('12.50'),
             ),
         );
+        $this->currentRates = $this->estimate->rates;
     }
 
     public function estimate(string $prompt, Size $size, Quality $quality, array $referenceImages): Estimate
@@ -43,13 +65,25 @@ final class FakeImageProvider implements ImageProvider
             throw new PricingUnavailable('Fake pricing is unavailable.');
         }
 
-        $this->estimatedFor = [
-            'prompt' => $prompt,
-            'size' => $size->value,
-            'quality' => $quality->value,
-            'reference_images' => $referenceImages,
-        ];
+        $this->estimatedPrompt = $prompt;
+        $this->estimatedSize = $size;
+        $this->estimatedQuality = $quality;
+        $this->estimatedReferenceImages = $referenceImages;
 
         return $this->estimate;
+    }
+
+    public function currentRates(): Rates
+    {
+        $this->currentRatesCalls++;
+
+        return $this->currentRates;
+    }
+
+    public function submit(Generation $generation): ProviderUpdate
+    {
+        $this->submitted[] = $generation->uuid;
+
+        return new ProviderUpdate("gen_fake_{$generation->id}", $this->submitStatus, '{"fake":true}');
     }
 }

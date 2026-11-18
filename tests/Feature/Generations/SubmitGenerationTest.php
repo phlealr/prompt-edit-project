@@ -83,12 +83,10 @@ it('estimates the submission from the same input it stores', function () {
         'reference_images' => ['https://example.com/a.png', 'https://example.com/a.png'],
     ]));
 
-    expect($this->provider->estimatedFor)->toBe([
-        'prompt' => 'A lighthouse on a cliff at dawn',
-        'size' => '1536x1024',
-        'quality' => 'high',
-        'reference_images' => ['https://example.com/a.png', 'https://example.com/a.png'],
-    ]);
+    expect($this->provider->estimatedPrompt)->toBe('A lighthouse on a cliff at dawn')
+        ->and($this->provider->estimatedSize?->value)->toBe('1536x1024')
+        ->and($this->provider->estimatedQuality?->value)->toBe('high')
+        ->and($this->provider->estimatedReferenceImages)->toBe(['https://example.com/a.png', 'https://example.com/a.png']);
 });
 
 it('creates the generation, its hold and its job in one transaction', function () {

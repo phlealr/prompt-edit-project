@@ -3,13 +3,12 @@
 namespace App\Actions\Generations;
 
 use App\Actions\Credits\CalculateBalance;
+use App\Data\Generations\EstimateForUser;
 use App\Enums\Quality;
 use App\Enums\Size;
-use App\ImageProviders\Estimate;
 use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\ImageProviders\ImageProvider;
 use App\Models\User;
-use App\ValueObjects\Money;
 
 class EstimateGeneration
 {
@@ -23,19 +22,19 @@ class EstimateGeneration
      * with the user's balance and whether it covers the estimate's maximum (ADR 0017).
      *
      * @param  list<string>  $referenceImages
-     * @return array{estimate: Estimate, balance: Money, enoughCredits: bool}
      *
      * @throws PricingUnavailable
      */
-    public function handle(User $user, string $prompt, Size $size, Quality $quality, array $referenceImages): array
+    public function handle(User $user, string $prompt, Size $size, Quality $quality, array $referenceImages): EstimateForUser
     {
         $estimate = $this->provider->estimate($prompt, $size, $quality, $referenceImages);
         $balance = $this->calculateBalance->handle($user);
 
-        return [
-            'estimate' => $estimate,
-            'balance' => $balance,
-            'enoughCredits' => $balance->nanodollars() >= $estimate->maximum->nanodollars(),
-        ];
+        return new EstimateForUser(
+            $estimate->minimum,
+            $estimate->maximum,
+            $balance,
+            $balance->nanodollars() >= $estimate->maximum->nanodollars(),
+        );
     }
 }

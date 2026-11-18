@@ -5,6 +5,7 @@ namespace App\ImageProviders;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Exceptions\PricingUnavailable;
+use App\Models\Generation;
 
 /**
  * An external image-generation service (ADR 0014).
@@ -17,4 +18,17 @@ interface ImageProvider
      * @throws PricingUnavailable
      */
     public function estimate(string $prompt, Size $size, Quality $quality, array $referenceImages): Estimate;
+
+    /**
+     * The provider's rates right now, never from a cache (ADR 0026).
+     *
+     * @throws PricingUnavailable
+     */
+    public function currentRates(): Rates;
+
+    /**
+     * Sends the generation to the provider, with its UUID as idempotency key and its id in the
+     * metadata (ADR 0009). Sending it again returns the same generation as it is now.
+     */
+    public function submit(Generation $generation): ProviderUpdate;
 }

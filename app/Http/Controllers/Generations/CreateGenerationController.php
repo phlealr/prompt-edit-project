@@ -23,7 +23,8 @@ class CreateGenerationController extends Controller
             'balance' => $calculateBalance->handle($request->user()),
             'sizes' => array_column(Size::cases(), 'value'),
             'qualities' => array_column(Quality::cases(), 'value'),
-            'defaults' => ['size' => Size::Square->value, 'quality' => Quality::Medium->value],
+            'defaultSize' => Size::Square,
+            'defaultQuality' => Quality::Medium,
         ]);
     }
 }

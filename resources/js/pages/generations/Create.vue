@@ -16,7 +16,8 @@ import type { Money } from '@/types';
 const props = defineProps<{
     sizes: string[];
     qualities: string[];
-    defaults: { size: string; quality: string };
+    defaultSize: string;
+    defaultQuality: string;
     balance: Money;
 }>();
 
@@ -42,8 +43,8 @@ type Estimate = {
 
 const form = useForm({
     prompt: '',
-    size: props.defaults.size,
-    quality: props.defaults.quality,
+    size: props.defaultSize,
+    quality: props.defaultQuality,
     reference_images: [] as string[],
 });
 

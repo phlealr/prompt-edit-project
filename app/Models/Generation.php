@@ -21,6 +21,8 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $uuid
  * @property int $user_id
+ * @property string|null $provider_id
+ * @property string|null $provider_response
  * @property string $prompt
  * @property Size $size
  * @property Quality $quality
@@ -32,7 +34,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum'])]
+#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response'])]
 class Generation extends Model
 {
     /** @use HasFactory<GenerationFactory> */

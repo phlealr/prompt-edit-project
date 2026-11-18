@@ -2,12 +2,15 @@
 
 namespace App\ImageProviders\Pixelforge;
 
+use App\Enums\GenerationStatus;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Estimate;
 use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\ImageProviders\ImageProvider;
+use App\ImageProviders\ProviderUpdate;
 use App\ImageProviders\Rates;
+use App\Models\Generation;
 use App\ValueObjects\Money;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -15,18 +18,8 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
+use UnexpectedValueException;
 
-/**
- * @phpstan-type Pricing array{
- *     rates: array<string, string>,
- *     tokens: array{
- *         characters_per_text_token: int,
- *         per_reference_image: int,
- *         output: array<string, array<string, int>>,
- *         reasoning: array<string, array{min: int, max: int}>,
- *     },
- * }
- */
 final class PixelforgeImageProvider implements ImageProvider
 {
     /** Rates are in dollars per 1M tokens. */
@@ -37,48 +30,74 @@ final class PixelforgeImageProvider implements ImageProvider
     public function estimate(string $prompt, Size $size, Quality $quality, array $referenceImages): Estimate
     {
         $pricing = $this->pricing();
-        $tokens = $pricing['tokens'];
 
-        // One text token per `characters_per_text_token` Unicode characters, rounded up, then −15%
+        // One text token per `charactersPerTextToken` Unicode characters, rounded up, then −15%
         // rounded down and +15% rounded up (ADR 0024; the pricing rules check the 15%).
-        $textTokens = $this->ceilDiv(mb_strlen($prompt), $tokens['characters_per_text_token']);
-        $imageTokens = $tokens['per_reference_image'] * count($referenceImages);
-        $outputTokens = $tokens['output'][$quality->value][$size->value];
-        $reasoningTokens = $tokens['reasoning'][$quality->value];
+        $textTokens = $this->ceilDiv(mb_strlen($prompt), $pricing->charactersPerTextToken);
+        $imageTokens = $pricing->tokensPerReferenceImage * count($referenceImages);
+        $outputTokens = $pricing->outputTokens($quality, $size);
+        $reasoningTokens = $pricing->reasoningTokens($quality);
 
-        $rates = new Rates(
-            Money::fromDecimalString($pricing['rates']['input_text_tokens']),
-            Money::fromDecimalString($pricing['rates']['input_image_tokens']),
-            Money::fromDecimalString($pricing['rates']['output_tokens']),
-            Money::fromDecimalString($pricing['rates']['reasoning_tokens']),
-        );
+        $minimumCost = $this->providerCost($pricing->rates, intdiv($textTokens * 85, 100), $imageTokens, $outputTokens, $reasoningTokens->minimum);
+        $maximumCost = $this->providerCost($pricing->rates, $this->ceilDiv($textTokens * 115, 100), $imageTokens, $outputTokens, $reasoningTokens->maximum);
 
-        $minimumCost = $this->providerCost($rates, intdiv($textTokens * 85, 100), $imageTokens, $outputTokens, $reasoningTokens['min']);
-        $maximumCost = $this->providerCost($rates, $this->ceilDiv($textTokens * 115, 100), $imageTokens, $outputTokens, $reasoningTokens['max']);
+        return new Estimate($minimumCost->plusMarkup(), $maximumCost->plusMarkup(), $pricing->rates);
+    }
 
-        return new Estimate($minimumCost->plusMarkup(), $maximumCost->plusMarkup(), $rates);
+    public function currentRates(): Rates
+    {
+        return $this->fetchPricing()->rates;
+    }
+
+    public function submit(Generation $generation): ProviderUpdate
+    {
+        $response = $this->http()
+            ->withToken((string) config('services.pixelforge.api_key'))
+            ->withHeaders(['Idempotency-Key' => $generation->uuid])
+            ->post('generations', [
+                'prompt' => $generation->prompt,
+                'size' => $generation->size->value,
+                'quality' => $generation->quality->value,
+                'reference_images' => $generation->reference_images,
+                'metadata' => ['generation_id' => (string) $generation->id],
+            ])
+            ->throw();
+
+        return $this->providerUpdateFrom($response->body());
+    }
+
+    /**
+     * Maps a Pixelforge generation object, as a raw JSON body, to our provider update.
+     */
+    private function providerUpdateFrom(string $body): ProviderUpdate
+    {
+        $generation = json_decode($body);
+
+        $status = match ($generation->status) {
+            'queued' => GenerationStatus::Queued,
+            'processing' => GenerationStatus::Processing,
+            'succeeded' => GenerationStatus::Succeeded,
+            'failed' => GenerationStatus::Failed,
+            default => throw new UnexpectedValueException("Pixelforge answered an unknown generation status: {$body}"),
+        };
+
+        return new ProviderUpdate($generation->id, $status, $body);
     }
 
     /**
      * The current pricing, cached for the configured time (ADR 0011, ADR 0032). A failed or
      * unusable response throws, so it is never cached.
-     *
-     * @return Pricing
      */
-    private function pricing(): array
+    private function pricing(): Pricing
     {
-        /** @var Pricing */
         return Cache::remember(
             'pixelforge.pricing',
             (int) config('services.pixelforge.pricing_cache_seconds'),
-            fn (): array => $this->fetchPricing(),
+            fn (): Pricing => $this->fetchPricing(),
         );
     }
 
-    /**
-     * @return Pricing
-     */
-    private function fetchPricing(): array
+    private function fetchPricing(): Pricing
     {
         try {
             $pricing = $this->http()->get('pricing')->throw()->json() ?? [];
@@ -90,8 +109,8 @@ final class PixelforgeImageProvider implements ImageProvider
             throw new PricingUnavailable('Pixelforge pricing has an unexpected shape.');
         }
 
-        /** @var Pricing */
-        return $pricing;
+        /** @var array<string, mixed> $pricing */
+        return Pricing::fromResponse($pricing);
     }
 
     /**

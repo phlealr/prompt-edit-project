@@ -16,7 +16,8 @@ it('shows every size and quality, with 1024x1024 and medium selected', function 
             ->component('generations/Create')
             ->where('sizes', ['1024x1024', '1536x1024', '1024x1536'])
             ->where('qualities', ['low', 'medium', 'high'])
-            ->where('defaults', ['size' => '1024x1024', 'quality' => 'medium'])
+            ->where('defaultSize', '1024x1024')
+            ->where('defaultQuality', 'medium')
         );
 });
 
@@ -78,12 +79,10 @@ it('passes the prompt, options and every reference image URL to the provider', f
         ])
         ->assertOk();
 
-    expect($provider->estimatedFor)->toBe([
-        'prompt' => 'A cat',
-        'size' => '1024x1536',
-        'quality' => 'low',
-        'reference_images' => ['https://example.com/a.png', 'https://example.com/a.png'],
-    ]);
+    expect($provider->estimatedPrompt)->toBe('A cat')
+        ->and($provider->estimatedSize?->value)->toBe('1024x1536')
+        ->and($provider->estimatedQuality?->value)->toBe('low')
+        ->and($provider->estimatedReferenceImages)->toBe(['https://example.com/a.png', 'https://example.com/a.png']);
 });
 
 it('estimates an empty prompt while the user has not typed yet', function () {

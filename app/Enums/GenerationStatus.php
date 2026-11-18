@@ -12,4 +12,23 @@ enum GenerationStatus: string
     case Processing = 'processing';
     case Succeeded = 'succeeded';
     case Failed = 'failed';
+
+    /**
+     * Whether a generation in this status may move to $next: only forward. Both final statuses
+     * share the last position, so nothing moves out of them (ADR 0025).
+     */
+    public function canMoveTo(self $next): bool
+    {
+        return $next->position() > $this->position();
+    }
+
+    private function position(): int
+    {
+        return match ($this) {
+            self::Pending => 0,
+            self::Queued => 1,
+            self::Processing => 2,
+            self::Succeeded, self::Failed => 3,
+        };
+    }
 }

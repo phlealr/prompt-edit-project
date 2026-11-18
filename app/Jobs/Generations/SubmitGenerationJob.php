@@ -2,11 +2,13 @@
 
 namespace App\Jobs\Generations;
 
+use App\Actions\Generations\SendGeneration;
+use App\Models\Generation;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * Sends a pending generation to the provider (ADR 0009). Sending comes with ticket generating 06.
+ * Sends a pending generation to the provider, outside any web request (ADR 0009).
  */
 class SubmitGenerationJob implements ShouldQueue
 {
@@ -14,8 +16,8 @@ class SubmitGenerationJob implements ShouldQueue
 
     public function __construct(public int $generationId) {}
 
-    public function handle(): void
+    public function handle(SendGeneration $sendGeneration): void
     {
-        //
+        $sendGeneration->handle(Generation::query()->findOrFail($this->generationId));
     }
 }
