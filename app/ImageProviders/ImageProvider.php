@@ -4,8 +4,10 @@ namespace App\ImageProviders;
 
 use App\Enums\Quality;
 use App\Enums\Size;
+use App\ImageProviders\Exceptions\InvalidWebhook;
 use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\Models\Generation;
+use Symfony\Component\HttpFoundation\HeaderBag;
 
 /**
  * An external image-generation service (ADR 0014).
@@ -31,4 +33,12 @@ interface ImageProvider
      * metadata (ADR 0009). Sending it again returns the same generation as it is now.
      */
     public function submit(Generation $generation): ProviderUpdate;
+
+    /**
+     * Checks that a webhook request comes from the provider, on its raw body, and reads which event
+     * it is.
+     *
+     * @throws InvalidWebhook
+     */
+    public function verifyWebhook(string $body, HeaderBag $headers): VerifiedWebhook;
 }

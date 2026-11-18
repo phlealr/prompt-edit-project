@@ -133,3 +133,26 @@ function pixelforgeGeneration(array $overrides = []): array
         ...$overrides,
     ];
 }
+
+/**
+ * The Pixelforge-Signature header for this raw body, signed as Pixelforge signs it
+ * (docs/spec/pixelforge-api.md#verifying-signatures).
+ */
+function pixelforgeSignature(string $body, int $timestamp, string $secret = 'whsec_test'): string
+{
+    return "t={$timestamp},v1=".hash_hmac('sha256', "{$timestamp}.{$body}", $secret);
+}
+
+/**
+ * A webhook event body as Pixelforge posts it, around a generation object.
+ */
+function pixelforgeEvent(string $id, string $type, array $generation = []): string
+{
+    return (string) json_encode([
+        'id' => $id,
+        'object' => 'event',
+        'type' => $type,
+        'created_at' => '2026-11-04T14:03:29Z',
+        'data' => ['object' => pixelforgeGeneration($generation)],
+    ]);
+}

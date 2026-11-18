@@ -1,6 +1,6 @@
 # 01. Webhook endpoint
 
-- Status: todo
+- Status: done
 - Blocked by: generating 06
 - Spec: docs/features/generation-updates.md
 
@@ -13,15 +13,28 @@ duplicate is answered `200` and not dispatched again, a `ping` is recorded and a
 
 ## Acceptance criteria
 
-- [ ] A request with no signature, a wrong signature, a signature over a different body, or a
+- [x] A request with no signature, a wrong signature, a signature over a different body, or a
       timestamp more than 5 minutes off gets `400`, and no event, job or change is recorded.
-- [ ] The signature is checked on the raw request body, compared in constant time.
-- [ ] The route accepts requests without a CSRF token or a signed-in user, and never redirects
+- [x] The signature is checked on the raw request body, compared in constant time.
+- [x] The route accepts requests without a CSRF token or a signed-in user, and never redirects
       (Pixelforge does not follow redirects).
-- [ ] A valid event is recorded once in `webhook_events` by its event id, a job is dispatched, and
+- [x] A valid event is recorded once in `webhook_events` by its event id, a job is dispatched, and
       the answer is `200`; the request does no other work.
-- [ ] The same event delivered twice (`[duplicate]`) is answered `200` both times and recorded and
+- [x] The same event delivered twice (`[duplicate]`) is answered `200` both times and recorded and
       dispatched once.
-- [ ] A `ping` is recorded and answered `200`, and applies nothing.
+- [x] A `ping` is recorded and answered `200`, and applies nothing.
 
 ## Notes
+
+- The route is registered in `bootstrap/app.php` under `withRouting(then:)`, outside the `web` group:
+  no session, no CSRF token; it answers only `200` or `400`.
+- The controller hands the raw body and the request's `HeaderBag` (a typed object, ADR 0041) to
+  `RecordWebhookEvent`; `PixelforgeImageProvider::verifyWebhook()` checks the signature with
+  `hash_equals` on `<timestamp>.<raw body>` and the ±5-minute window, and returns our
+  `VerifiedWebhook`.
+- With no webhook secret configured, every webhook is refused, since an empty HMAC key could be
+  forged by anyone.
+- The event row and its job commit in one transaction (database queue), so a failed dispatch leaves
+  nothing and the provider's retry dispatches. Concurrent duplicates are stopped by the unique event
+  id and `createOrFirst` (checked in review; no concurrency test).
+- The apply job is empty until ticket 02.

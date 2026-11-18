@@ -10,8 +10,10 @@ use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\ImageProviders\ImageProvider;
 use App\ImageProviders\ProviderUpdate;
 use App\ImageProviders\Rates;
+use App\ImageProviders\VerifiedWebhook;
 use App\Models\Generation;
 use App\ValueObjects\Money;
+use Symfony\Component\HttpFoundation\HeaderBag;
 use Throwable;
 
 /**
@@ -103,5 +105,16 @@ final class FakeImageProvider implements ImageProvider
         }
 
         return new ProviderUpdate("gen_fake_{$generation->id}", $this->submitStatus, '{"fake":true}');
+    }
+
+    /**
+     * Trusts the body: webhook tests sign their requests and go through the Pixelforge
+     * implementation instead.
+     */
+    public function verifyWebhook(string $body, HeaderBag $headers): VerifiedWebhook
+    {
+        $event = json_decode($body);
+
+        return new VerifiedWebhook($event->id, $event->type === 'ping');
     }
 }

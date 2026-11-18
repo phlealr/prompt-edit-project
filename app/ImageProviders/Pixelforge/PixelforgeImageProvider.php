@@ -7,6 +7,7 @@ use App\Enums\GenerationStatus;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Estimate;
+use App\ImageProviders\Exceptions\InvalidWebhook;
 use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\ImageProviders\Exceptions\PromptRejected;
 use App\ImageProviders\Exceptions\ProviderBusy;
@@ -15,6 +16,7 @@ use App\ImageProviders\Exceptions\SubmissionRefused;
 use App\ImageProviders\ImageProvider;
 use App\ImageProviders\ProviderUpdate;
 use App\ImageProviders\Rates;
+use App\ImageProviders\VerifiedWebhook;
 use App\Models\Generation;
 use App\ValueObjects\Money;
 use Illuminate\Http\Client\ConnectionException;
@@ -24,12 +26,16 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\HeaderBag;
 use UnexpectedValueException;
 
 final class PixelforgeImageProvider implements ImageProvider
 {
     /** Rates are in dollars per 1M tokens. */
     private const int TOKENS_PER_RATE = 1_000_000;
+
+    /** Webhooks signed more than 5 minutes before or after now are refused, to stop replays. */
+    private const int WEBHOOK_TOLERANCE_SECONDS = 300;
 
     private const array RATE_TYPES = ['input_text_tokens', 'input_image_tokens', 'output_tokens', 'reasoning_tokens'];
 
@@ -74,6 +80,56 @@ final class PixelforgeImageProvider implements ImageProvider
         }
 
         return $this->providerUpdateFrom($response->body());
+    }
+
+    /**
+     * Pixelforge signs `<timestamp>.<raw body>` with HMAC-SHA256 and the key's signing secret, and
+     * sends `t=<timestamp>,v1=<signature>` (docs/spec/pixelforge-api.md#verifying-signatures).
+     */
+    public function verifyWebhook(string $body, HeaderBag $headers): VerifiedWebhook
+    {
+        $timestamp = null;
+        $signature = null;
+
+        foreach (explode(',', (string) $headers->get('Pixelforge-Signature')) as $part) {
+            [$key, $value] = array_pad(explode('=', $part, 2), 2, '');
+
+            match ($key) {
+                't' => $timestamp = (int) $value,
+                'v1' => $signature = $value,
+                default => null,
+            };
+        }
+
+        if ($timestamp === null || $signature === null) {
+            throw new InvalidWebhook('The webhook has no Pixelforge signature.');
+        }
+
+        $secret = (string) config('services.pixelforge.webhook_secret');
+
+        // With no secret, anyone could sign with an empty key: refuse every webhook instead.
+        if ($secret === '') {
+            throw new InvalidWebhook('No Pixelforge webhook secret is configured.');
+        }
+
+        $expected = hash_hmac('sha256', "{$timestamp}.{$body}", $secret);
+
+        // hash_equals compares in constant time, so the comparison leaks nothing about the secret.
+        if (! hash_equals($expected, $signature)) {
+            throw new InvalidWebhook('The webhook signature does not match its body.');
+        }
+
+        if (abs(now()->getTimestamp() - $timestamp) > self::WEBHOOK_TOLERANCE_SECONDS) {
+            throw new InvalidWebhook('The webhook timestamp is more than 5 minutes off.');
+        }
+
+        $event = json_decode($body);
+
+        if (! is_object($event) || ! is_string($event->id ?? null) || ! is_string($event->type ?? null)) {
+            throw new InvalidWebhook('The webhook body is not a Pixelforge event.');
+        }
+
+        return new VerifiedWebhook($event->id, $event->type === 'ping');
     }
 
     /**
