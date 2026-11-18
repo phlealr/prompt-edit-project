@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Actions\Reports\BuildOperatorReport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Reports\ShowOperatorReportRequest;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Illuminate\Routing\Attributes\Controllers\Middleware;
 use Inertia\Inertia;
@@ -13,10 +15,12 @@ use Inertia\Response;
 class ShowOperatorReportController extends Controller
 {
     /**
-     * The operator report, for operators only (ADR 0016). Its figures come with operator-report 02.
+     * The operator report, for operators only (ADR 0016).
      */
-    public function __invoke(): Response
+    public function __invoke(ShowOperatorReportRequest $request, BuildOperatorReport $buildOperatorReport): Response
     {
-        return Inertia::render('reports/Index');
+        return Inertia::render('reports/Index', [
+            'report' => $buildOperatorReport->handle($request->start(), $request->end()),
+        ]);
     }
 }
