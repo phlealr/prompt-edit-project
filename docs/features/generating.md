@@ -113,8 +113,8 @@ moves a generation back or applies anything twice.
    the hold (ADR 0026).
 3. The user sees the generation as failed with the `price_changed` message; a new estimate on the
    generate page uses the new rates.
-4. The check is skipped on an attempt that follows a network error or timeout, since the provider may
-   already have created the generation. Whatever the provider billed is then charged at cost plus
+4. The check is skipped on every attempt after one that ended in a network error, timeout or server
+   error, since the provider may already have created the generation (ADR 0040, ADR 0043). Whatever the provider billed is then charged at cost plus
    25% (`generation-updates` spec).
 
 ### Invalid input
@@ -231,8 +231,8 @@ Submission job
 - [ ] Before each create attempt, the job fetches the provider's rates bypassing the cache; when any
       rate differs from the stored ones, nothing is sent, the generation fails with `price_changed`,
       and it gets one `release` equal to its hold and no `charge`.
-- [ ] After an attempt that ended in a network error or timeout, the next attempt is sent without the
-      rate check.
+- [ ] After an attempt that ended in a network error or timeout, every later attempt is sent without
+      the rate check (ADR 0040).
 - [ ] An accepted create moves the generation to `queued` and stores the provider's id.
 - [ ] A create response with a later status (an idempotent replay) is applied through the shared
       action and never moves the generation back.

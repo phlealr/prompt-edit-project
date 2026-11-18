@@ -1,6 +1,7 @@
 # 0026. Rates are checked before sending, and a sent generation is always charged cost plus 25%
 
-- Status: accepted
+- Status: accepted (amended by ADR 0040: the rate check is skipped on every attempt after a network
+  error or timeout, not only the next one)
 - Date: 2026-11-17
 
 ## Context

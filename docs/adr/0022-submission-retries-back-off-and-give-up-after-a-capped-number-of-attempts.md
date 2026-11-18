@@ -1,6 +1,6 @@
 # 0022. Submission retries back off and give up after a capped number of attempts
 
-- Status: accepted
+- Status: accepted (amended by ADR 0042 and ADR 0043)
 - Date: 2026-11-17
 
 ## Context

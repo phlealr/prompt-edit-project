@@ -27,5 +27,8 @@ accepted (ADR 0010, ADR 0027).
       generation and its hold unchanged.
 - [ ] The webhook job, the polling job and the submission job all change a generation only through
       the one action.
+- [ ] A `pending` generation that may exist at the provider and whose submission job gave up is
+      re-sent with its idempotency key and without the rate check, and the answer is applied through
+      the one action (ADR 0042).
 
 ## Notes

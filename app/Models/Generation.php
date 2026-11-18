@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property string|null $provider_id
  * @property string|null $provider_response
+ * @property bool $may_exist_at_provider
  * @property string $prompt
  * @property Size $size
  * @property Quality $quality
@@ -36,7 +37,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason'])]
+#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider'])]
 class Generation extends Model
 {
     /** @use HasFactory<GenerationFactory> */
@@ -51,6 +52,7 @@ class Generation extends Model
             'size' => Size::class,
             'quality' => Quality::class,
             'reference_images' => 'array',
+            'may_exist_at_provider' => 'boolean',
             'status' => GenerationStatus::class,
             'failure_reason' => FailureReason::class,
         ];

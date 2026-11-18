@@ -72,7 +72,7 @@ it('fails a generation whose rates changed with price_changed, sends nothing, an
 it('fails a rejected prompt with prompt_rejected after one attempt, and gives the balance back', function () {
     $generation = submittedGeneration();
     $user = $generation->user;
-    $this->provider->submitThrows = new PromptRejected('The prompt was rejected.');
+    $this->provider->submitFailures = [new PromptRejected('The prompt was rejected.')];
 
     SubmitGenerationJob::dispatchSync($generation->id);
 
@@ -86,7 +86,7 @@ it('fails a rejected prompt with prompt_rejected after one attempt, and gives th
 it('fails a refused submission with provider_unavailable after one attempt, releases its hold and logs an error', function () {
     Log::spy();
     $generation = submittedGeneration();
-    $this->provider->submitThrows = new SubmissionRefused('Pixelforge refused the submission: 429 daily_limit_exceeded.');
+    $this->provider->submitFailures = [new SubmissionRefused('Pixelforge refused the submission: 429 daily_limit_exceeded.')];
 
     SubmitGenerationJob::dispatchSync($generation->id);
 

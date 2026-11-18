@@ -32,8 +32,12 @@ final class FakeImageProvider implements ImageProvider
     /** The status submit() answers with. */
     public GenerationStatus $submitStatus = GenerationStatus::Queued;
 
-    /** Thrown by submit() instead of answering, when set. */
-    public ?Throwable $submitThrows = null;
+    /**
+     * Thrown by the next submit() calls, one per call, before it answers normally.
+     *
+     * @var list<Throwable>
+     */
+    public array $submitFailures = [];
 
     /** @var list<string> The idempotency keys of every submit() call. */
     public array $submitted = [];
@@ -81,6 +85,10 @@ final class FakeImageProvider implements ImageProvider
     {
         $this->currentRatesCalls++;
 
+        if ($this->pricingUnavailable) {
+            throw new PricingUnavailable('Fake pricing is unavailable.');
+        }
+
         return $this->currentRates;
     }
 
@@ -88,8 +96,10 @@ final class FakeImageProvider implements ImageProvider
     {
         $this->submitted[] = $generation->uuid;
 
-        if ($this->submitThrows !== null) {
-            throw $this->submitThrows;
+        $failure = array_shift($this->submitFailures);
+
+        if ($failure !== null) {
+            throw $failure;
         }
 
         return new ProviderUpdate("gen_fake_{$generation->id}", $this->submitStatus, '{"fake":true}');

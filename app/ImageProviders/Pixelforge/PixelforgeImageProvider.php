@@ -9,6 +9,8 @@ use App\Enums\Size;
 use App\ImageProviders\Estimate;
 use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\ImageProviders\Exceptions\PromptRejected;
+use App\ImageProviders\Exceptions\ProviderBusy;
+use App\ImageProviders\Exceptions\ProviderUnreachable;
 use App\ImageProviders\Exceptions\SubmissionRefused;
 use App\ImageProviders\ImageProvider;
 use App\ImageProviders\ProviderUpdate;
@@ -55,24 +57,33 @@ final class PixelforgeImageProvider implements ImageProvider
 
     public function submit(Generation $generation): ProviderUpdate
     {
-        $response = $this->http()
-            ->withToken((string) config('services.pixelforge.api_key'))
-            ->withHeaders(['Idempotency-Key' => $generation->uuid])
-            ->post('generations', [
-                'prompt' => $generation->prompt,
-                'size' => $generation->size->value,
-                'quality' => $generation->quality->value,
-                'reference_images' => $generation->reference_images,
-                'metadata' => ['generation_id' => (string) $generation->id],
-            ])
-            ->throw(fn (Response $response) => $this->throwSubmissionError($response));
+        try {
+            $response = $this->http()
+                ->withToken((string) config('services.pixelforge.api_key'))
+                ->withHeaders(['Idempotency-Key' => $generation->uuid])
+                ->post('generations', [
+                    'prompt' => $generation->prompt,
+                    'size' => $generation->size->value,
+                    'quality' => $generation->quality->value,
+                    'reference_images' => $generation->reference_images,
+                    'metadata' => ['generation_id' => (string) $generation->id],
+                ])
+                ->throw(fn (Response $response) => $this->throwSubmissionError($response));
+        } catch (ConnectionException $exception) {
+            throw new ProviderUnreachable($exception->getMessage(), previous: $exception);
+        }
 
         return $this->providerUpdateFrom($response->body());
     }
 
     /**
-     * Maps a refused create request to our exceptions (docs/spec/pixelforge-api.md#errors). Answers
-     * waiting can fix are left as they are; generating 08 retries them.
+     * Maps a refused create request to our exceptions (docs/spec/pixelforge-api.md#errors, Rate
+     * limits and quotas). Any other answer stays Laravel's RequestException.
+     *
+     * @throws PromptRejected
+     * @throws SubmissionRefused
+     * @throws ProviderBusy
+     * @throws ProviderUnreachable
      */
     private function throwSubmissionError(Response $response): void
     {
@@ -85,6 +96,15 @@ final class PixelforgeImageProvider implements ImageProvider
 
         if ($code === 'daily_limit_exceeded' || in_array($response->status(), [401, 409, 422], true)) {
             throw new SubmissionRefused($answer);
+        }
+
+        if (in_array($code, ['rate_limit_exceeded', 'concurrency_limit_exceeded', 'overloaded'], true)) {
+            throw new ProviderBusy((int) $response->header('Retry-After'), $answer);
+        }
+
+        // Any other server error may have come after the generation was created (ADR 0043).
+        if ($response->serverError()) {
+            throw new ProviderUnreachable($answer);
         }
     }
 

@@ -4,7 +4,10 @@ namespace App\Actions\Generations;
 
 use App\Enums\FailureReason;
 use App\Enums\GenerationStatus;
+use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\ImageProviders\Exceptions\PromptRejected;
+use App\ImageProviders\Exceptions\ProviderBusy;
+use App\ImageProviders\Exceptions\ProviderUnreachable;
 use App\ImageProviders\Exceptions\SubmissionRefused;
 use App\ImageProviders\ImageProvider;
 use App\ImageProviders\ProviderUpdate;
@@ -20,7 +23,12 @@ class SendGeneration
 
     /**
      * Sends a pending generation to the provider, once its rates are confirmed unchanged, and fails
-     * it at once when retrying cannot help (ADR 0009, ADR 0022, ADR 0026).
+     * it at once when retrying cannot help (ADR 0009, ADR 0022, ADR 0026). A busy or unreachable
+     * provider is thrown on to the job, which retries.
+     *
+     * @throws ProviderBusy
+     * @throws ProviderUnreachable
+     * @throws PricingUnavailable
      */
     public function handle(Generation $generation): void
     {
@@ -29,7 +37,9 @@ class SendGeneration
             return;
         }
 
-        if (! $this->provider->currentRates()->equals($generation->rates)) {
+        // Once an attempt may have reached the provider, it may be creating the generation, so it
+        // is never refused over a price change (ADR 0026, ADR 0040).
+        if (! $generation->may_exist_at_provider && ! $this->provider->currentRates()->equals($generation->rates)) {
             $this->fail($generation, FailureReason::PriceChanged);
 
             return;
@@ -41,6 +51,10 @@ class SendGeneration
             $this->fail($generation, FailureReason::PromptRejected, $exception->getMessage());
 
             return;
+        } catch (ProviderUnreachable $exception) {
+            $generation->update(['may_exist_at_provider' => true]);
+
+            throw $exception;
         } catch (SubmissionRefused $exception) {
             Log::error('The provider refused a generation; it fails without retrying.', [
                 'generation' => $generation->id,

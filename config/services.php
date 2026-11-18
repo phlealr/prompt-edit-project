@@ -34,6 +34,8 @@ return [
         'pricing_cache_seconds' => env('PIXELFORGE_PRICING_CACHE_SECONDS', 300),
         'connect_timeout_seconds' => env('PIXELFORGE_CONNECT_TIMEOUT_SECONDS', 3),
         'timeout_seconds' => env('PIXELFORGE_TIMEOUT_SECONDS', 10),
+        'submit_max_attempts' => (int) env('PIXELFORGE_SUBMIT_MAX_ATTEMPTS', 8),
+        'submit_backoff_cap_seconds' => (int) env('PIXELFORGE_SUBMIT_BACKOFF_CAP_SECONDS', 60),
     ],
 
     'slack' => [

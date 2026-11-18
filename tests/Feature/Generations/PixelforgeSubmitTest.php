@@ -5,6 +5,8 @@ use App\Enums\GenerationStatus;
 use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Exceptions\PromptRejected;
+use App\ImageProviders\Exceptions\ProviderBusy;
+use App\ImageProviders\Exceptions\ProviderUnreachable;
 use App\ImageProviders\Exceptions\SubmissionRefused;
 use App\ImageProviders\Pixelforge\PixelforgeImageProvider;
 use App\Models\Generation;
@@ -99,3 +101,30 @@ it('turns errors waiting cannot fix into our SubmissionRefused exception, naming
     'validation failed' => [422, 'invalid_request_error', 'validation_failed'],
     'idempotency key reused' => [409, 'idempotency_error', 'idempotency_key_reused'],
 ]);
+
+it('turns answers waiting can fix into ProviderBusy, with the provider\'s Retry-After', function (int $status, string $type, string $code, string $retryAfter) {
+    Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeError($type, $code), $status, ['Retry-After' => $retryAfter])]);
+
+    try {
+        app(PixelforgeImageProvider::class)->submit(Generation::factory()->create());
+        $this->fail('ProviderBusy was not thrown.');
+    } catch (ProviderBusy $exception) {
+        expect($exception->retryAfterSeconds)->toBe((int) $retryAfter);
+    }
+})->with([
+    'rate limit' => [429, 'rate_limit_error', 'rate_limit_exceeded', '17'],
+    'concurrency limit' => [429, 'rate_limit_error', 'concurrency_limit_exceeded', '5'],
+    'overloaded' => [503, 'api_error', 'overloaded', '2'],
+]);
+
+it('turns a network error or timeout into ProviderUnreachable', function () {
+    Http::fake(['pixelforge.test/*' => Http::failedConnection()]);
+
+    app(PixelforgeImageProvider::class)->submit(Generation::factory()->create());
+})->throws(ProviderUnreachable::class);
+
+it('turns a server error into ProviderUnreachable, since it may have created the generation', function () {
+    Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeError('api_error', 'internal_error'), 500)]);
+
+    app(PixelforgeImageProvider::class)->submit(Generation::factory()->create());
+})->throws(ProviderUnreachable::class);

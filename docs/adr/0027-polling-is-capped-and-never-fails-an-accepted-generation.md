@@ -1,6 +1,6 @@
 # 0027. Polling is capped and never fails an accepted generation
 
-- Status: accepted
+- Status: accepted (amended by ADR 0042)
 - Date: 2026-11-17
 
 ## Context
