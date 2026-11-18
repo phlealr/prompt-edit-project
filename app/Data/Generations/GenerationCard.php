@@ -25,6 +25,8 @@ final readonly class GenerationCard
         public Money $estimateMinimum,
         public Money $estimateMaximum,
         public ?Money $charge,
+        public ?string $imageUrl,
+        public ?string $imageUrlExpiresAt,
         public string $createdAt,
     ) {}
 
@@ -42,6 +44,9 @@ final readonly class GenerationCard
             estimateMaximum: $generation->estimate_maximum,
             // The ledger's charge row is a negative amount; the card shows what was paid.
             charge: $generation->charge?->amount->negate(),
+            // The provider's URL, shown until it expires; the app stores no image (ADR 0012).
+            imageUrl: $generation->image_url,
+            imageUrlExpiresAt: $generation->image_url_expires_at?->utc()->toIso8601ZuluString(),
             createdAt: $generation->created_at->utc()->toIso8601ZuluString(),
         );
     }

@@ -153,3 +153,17 @@ it('treats a create response it cannot read as a generation that may exist', fun
 
     app(PixelforgeImageProvider::class)->submit(Generation::factory()->create());
 })->throws(ProviderUnreachable::class);
+
+it('keeps only an https image URL from the provider', function (string $url, ?string $kept) {
+    Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeGeneration([
+        'status' => 'succeeded',
+        'usage' => ['input_text_tokens' => 1, 'input_image_tokens' => 0, 'output_tokens' => 1, 'reasoning_tokens' => 0, 'total_tokens' => 2],
+        'image_url' => $url,
+    ]), 202)]);
+
+    expect(app(PixelforgeImageProvider::class)->submit(Generation::factory()->create())->imageUrl)->toBe($kept);
+})->with([
+    'https' => ['https://pixelforge.promptedit.dev/images/gen_1.png?signature=abc', 'https://pixelforge.promptedit.dev/images/gen_1.png?signature=abc'],
+    'javascript' => ['javascript:alert(1)', null],
+    'plain http' => ['http://example.com/a.png', null],
+]);

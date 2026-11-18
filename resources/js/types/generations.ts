@@ -14,6 +14,8 @@ export type GenerationCard = {
     estimateMinimum: Money;
     estimateMaximum: Money;
     charge: Money | null;
+    imageUrl: string | null;
+    imageUrlExpiresAt: string | null;
     createdAt: string;
 };
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import Amount from '@/components/Amount.vue';
+import GenerationImage from '@/components/GenerationImage.vue';
 import { Badge } from '@/components/ui/badge';
 import { exactTime, relativeTime } from '@/lib/relativeTime';
 import type { GenerationCard } from '@/types';
@@ -20,11 +21,7 @@ const badgeVariant = {
 
 <template>
     <article class="flex flex-col gap-3 rounded-xl border p-4 text-sm">
-        <div
-            class="flex aspect-square items-center justify-center rounded-lg bg-muted text-muted-foreground"
-        >
-            {{ generation.status }}
-        </div>
+        <GenerationImage :generation="generation" />
 
         <div class="flex flex-col gap-1">
             <Badge :variant="badgeVariant[generation.status]" class="w-fit">

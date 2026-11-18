@@ -249,7 +249,7 @@ final class PixelforgeImageProvider implements ImageProvider
             // Both of Pixelforge's failure codes mean it accepted the generation, then failed (ADR 0025).
             failureReason: $status === GenerationStatus::Failed ? FailureReason::ProviderFailed : null,
             providerCost: $status === GenerationStatus::Succeeded ? $this->billedCost($generation) : null,
-            imageUrl: $generation->image_url ?? null,
+            imageUrl: $this->imageUrl($generation->image_url ?? null),
             imageUrlExpiresAt: $this->time($generation->image_url_expires_at ?? null),
             startedAt: $this->time($generation->started_at ?? null),
             completedAt: $this->time($generation->completed_at ?? null),
@@ -281,6 +281,14 @@ final class PixelforgeImageProvider implements ImageProvider
             $usage->output_tokens,
             $usage->reasoning_tokens,
         );
+    }
+
+    /**
+     * The image URL goes straight into a link users click, so only an https URL is kept.
+     */
+    private function imageUrl(?string $url): ?string
+    {
+        return $url !== null && str_starts_with($url, 'https://') ? $url : null;
     }
 
     private function time(?string $iso8601): ?CarbonImmutable

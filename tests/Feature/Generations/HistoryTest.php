@@ -67,6 +67,8 @@ it('shows each card\'s status, hint, prompt, options, estimate and creation time
             'estimateMinimum' => ['user' => '$0.3578', 'exact' => '$0.357781250'],
             'estimateMaximum' => ['user' => '$0.4673', 'exact' => '$0.467343750'],
             'charge' => null,
+            'imageUrl' => null,
+            'imageUrlExpiresAt' => null,
             'createdAt' => '2026-11-18T09:30:00Z',
         ]));
 });
@@ -125,4 +127,28 @@ it('never shows a provider cost, a token count or a provider error code', functi
 it('shows an empty history to a user with no generations', function () {
     $this->actingAs(User::factory()->create())->get(route('history'))
         ->assertInertia(fn (Assert $page) => $page->has('generations.data', 0));
+});
+
+it('gives a succeeded card its image URL and when it expires', function () {
+    $user = User::factory()->create();
+    Generation::factory()->for($user)->create([
+        'status' => GenerationStatus::Succeeded,
+        'image_url' => 'https://pixelforge.promptedit.dev/images/gen_pf_1.png?signature=abc',
+        'image_url_expires_at' => '2026-11-19 14:03:29',
+    ]);
+
+    $this->actingAs($user)->get(route('history'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('generations.data.0.imageUrl', 'https://pixelforge.promptedit.dev/images/gen_pf_1.png?signature=abc')
+            ->where('generations.data.0.imageUrlExpiresAt', '2026-11-19T14:03:29Z'));
+});
+
+it('gives other cards no image', function () {
+    $user = User::factory()->create();
+    Generation::factory()->for($user)->create(['status' => GenerationStatus::Processing]);
+
+    $this->actingAs($user)->get(route('history'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('generations.data.0.imageUrl', null)
+            ->where('generations.data.0.imageUrlExpiresAt', null));
 });
