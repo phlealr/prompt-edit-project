@@ -22,6 +22,7 @@ use LogicException;
  * @property CreditTransactionType $type
  * @property Money $amount
  * @property Carbon $created_at
+ * @property-read Generation|null $generation
  */
 #[Fillable(['user_id', 'generation_id', 'type', 'amount'])]
 class CreditTransaction extends Model
@@ -59,6 +60,14 @@ class CreditTransaction extends Model
             get: fn (int $value): Money => Money::fromNanodollars($value),
             set: fn (Money $amount): int => $amount->nanodollars(),
         );
+    }
+
+    /**
+     * @return BelongsTo<Generation, $this>
+     */
+    public function generation(): BelongsTo
+    {
+        return $this->belongsTo(Generation::class);
     }
 
     /**

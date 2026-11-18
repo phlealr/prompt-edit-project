@@ -14,3 +14,13 @@ export type Balance = {
     amount: Money;
     belowZero: boolean;
 };
+
+/**
+ * One line of the Credits activity (App\Data\Credits\ActivityEntry).
+ */
+export type ActivityEntry = {
+    kind: 'purchase' | 'charge';
+    amount: Money;
+    prompt: string | null;
+    createdAt: string;
+};
