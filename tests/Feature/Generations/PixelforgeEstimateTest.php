@@ -102,3 +102,16 @@ it('fails with our own exception when pricing cannot be fetched and nothing is c
         array_replace_recursive(pixelforgePricing(), ['tokens' => ['output' => ['medium' => ['1024x1024' => null]]]]),
     )])],
 ])->throws(PricingUnavailable::class);
+
+it('reads the cached pricing back from a cache store that serializes', function () {
+    config()->set('cache.stores.file.path', sys_get_temp_dir().'/pixelforge-pricing-test-'.uniqid());
+    config()->set('cache.default', 'file');
+    Http::fake(['pixelforge.test/v1/pricing' => Http::response(pixelforgePricing())]);
+    $provider = app(PixelforgeImageProvider::class);
+
+    $first = $provider->estimate('', Size::Square, Quality::Low, []);
+    $second = $provider->estimate('', Size::Square, Quality::Low, []);
+
+    expect($second->maximum->nanodollars())->toBe($first->maximum->nanodollars());
+    Http::assertSentCount(1);
+});

@@ -303,26 +303,48 @@ final class PixelforgeImageProvider implements ImageProvider
      */
     private function pricing(): Pricing
     {
-        return Cache::remember(
-            'pixelforge.pricing',
+        // The cache keeps the validated response body, a plain string: the cache refuses to
+        // unserialize our classes (config/cache.php, serializable_classes).
+        $body = Cache::remember(
+            'pixelforge.pricing_body',
             (int) config('services.pixelforge.pricing_cache_seconds'),
-            fn (): Pricing => $this->fetchPricing(),
+            fn (): string => $this->fetchPricingBody(),
         );
+
+        return $this->pricingFrom($body);
     }
 
     private function fetchPricing(): Pricing
     {
+        return $this->pricingFrom($this->fetchPricingBody());
+    }
+
+    /**
+     * The pricing response body, fetched now and validated; a failed or unusable response throws,
+     * so it is never cached.
+     */
+    private function fetchPricingBody(): string
+    {
         try {
-            $pricing = $this->http()->get('pricing')->throw()->json() ?? [];
+            $body = $this->http()->get('pricing')->throw()->body();
         } catch (ConnectionException|RequestException $exception) {
             throw new PricingUnavailable('Pixelforge pricing could not be fetched.', previous: $exception);
         }
+
+        $pricing = json_decode($body, true);
 
         if (! is_array($pricing) || Validator::make($pricing, $this->pricingRules())->fails()) {
             throw new PricingUnavailable('Pixelforge pricing has an unexpected shape.');
         }
 
+        return $body;
+    }
+
+    private function pricingFrom(string $body): Pricing
+    {
         /** @var array<string, mixed> $pricing */
+        $pricing = json_decode($body, true);
+
         return Pricing::fromResponse($pricing);
     }
 
