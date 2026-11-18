@@ -8,9 +8,11 @@ use App\Enums\Size;
 use App\ImageProviders\Estimate;
 use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\ImageProviders\ImageProvider;
+use App\ImageProviders\Pixelforge\PixelforgeImageProvider;
 use App\ImageProviders\ProviderUpdate;
 use App\ImageProviders\Rates;
 use App\ImageProviders\VerifiedWebhook;
+use App\ImageProviders\WebhookUpdate;
 use App\Models\Generation;
 use App\ValueObjects\Money;
 use Symfony\Component\HttpFoundation\HeaderBag;
@@ -116,5 +118,13 @@ final class FakeImageProvider implements ImageProvider
         $event = json_decode($body);
 
         return new VerifiedWebhook($event->id, $event->type === 'ping');
+    }
+
+    /**
+     * Webhook tests go through the Pixelforge implementation; the fake reads the same body.
+     */
+    public function updateFromWebhook(string $payload): WebhookUpdate
+    {
+        return app(PixelforgeImageProvider::class)->updateFromWebhook($payload);
     }
 }

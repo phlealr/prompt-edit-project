@@ -2,12 +2,13 @@
 
 namespace App\Jobs\Generations;
 
+use App\Actions\Generations\ApplyWebhookEvent;
+use App\Models\WebhookEvent;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * Applies a recorded webhook event to its generation (ADR 0010). Applying comes with
- * generation-updates 02.
+ * Applies a recorded webhook event to its generation, outside the webhook request (ADR 0010).
  */
 class ApplyWebhookEventJob implements ShouldQueue
 {
@@ -15,8 +16,8 @@ class ApplyWebhookEventJob implements ShouldQueue
 
     public function __construct(public int $webhookEventId) {}
 
-    public function handle(): void
+    public function handle(ApplyWebhookEvent $applyWebhookEvent): void
     {
-        //
+        $applyWebhookEvent->handle(WebhookEvent::query()->findOrFail($this->webhookEventId));
     }
 }

@@ -41,4 +41,10 @@ interface ImageProvider
      * @throws InvalidWebhook
      */
     public function verifyWebhook(string $body, HeaderBag $headers): VerifiedWebhook;
+
+    /**
+     * Turns a verified webhook's body into which generation of ours it is about, and the provider's
+     * view of it.
+     */
+    public function updateFromWebhook(string $payload): WebhookUpdate;
 }

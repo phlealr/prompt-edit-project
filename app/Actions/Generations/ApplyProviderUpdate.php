@@ -8,6 +8,7 @@ use App\ImageProviders\ProviderUpdate;
 use App\Models\CreditTransaction;
 use App\Models\Generation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ApplyProviderUpdate
 {
@@ -23,6 +24,17 @@ class ApplyProviderUpdate
             $current = Generation::query()->whereKey($generation->id)->lockForUpdate()->firstOrFail();
 
             if (! $current->status->canMoveTo($update->status)) {
+                return;
+            }
+
+            // An update about another provider generation than the one we stored is not ours.
+            if ($current->provider_id !== null && $update->providerId !== null && $current->provider_id !== $update->providerId) {
+                Log::warning('A provider update names another provider generation; nothing was applied.', [
+                    'generation' => $current->id,
+                    'stored_provider_id' => $current->provider_id,
+                    'update_provider_id' => $update->providerId,
+                ]);
+
                 return;
             }
 

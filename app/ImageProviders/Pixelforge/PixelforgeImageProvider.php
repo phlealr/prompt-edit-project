@@ -17,6 +17,7 @@ use App\ImageProviders\ImageProvider;
 use App\ImageProviders\ProviderUpdate;
 use App\ImageProviders\Rates;
 use App\ImageProviders\VerifiedWebhook;
+use App\ImageProviders\WebhookUpdate;
 use App\Models\Generation;
 use App\ValueObjects\Money;
 use Illuminate\Http\Client\ConnectionException;
@@ -26,6 +27,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
+use stdClass;
 use Symfony\Component\HttpFoundation\HeaderBag;
 use UnexpectedValueException;
 
@@ -79,7 +81,7 @@ final class PixelforgeImageProvider implements ImageProvider
             throw new ProviderUnreachable($exception->getMessage(), previous: $exception);
         }
 
-        return $this->providerUpdateFrom($response->body());
+        return $this->providerUpdateFrom(json_decode($response->body()), $response->body());
     }
 
     /**
@@ -132,6 +134,18 @@ final class PixelforgeImageProvider implements ImageProvider
         return new VerifiedWebhook($event->id, $event->type === 'ping');
     }
 
+    public function updateFromWebhook(string $payload): WebhookUpdate
+    {
+        // The event's data.object is the full generation object, with our id in its metadata.
+        $generation = json_decode($payload)->data->object;
+        $generationId = $generation->metadata->generation_id ?? null;
+
+        return new WebhookUpdate(
+            is_string($generationId) && ctype_digit($generationId) ? (int) $generationId : null,
+            $this->providerUpdateFrom($generation, $payload),
+        );
+    }
+
     /**
      * Maps a refused create request to our exceptions (docs/spec/pixelforge-api.md#errors, Rate
      * limits and quotas). Any other answer stays Laravel's RequestException.
@@ -165,24 +179,22 @@ final class PixelforgeImageProvider implements ImageProvider
     }
 
     /**
-     * Maps a Pixelforge generation object, as a raw JSON body, to our provider update.
+     * Maps a Pixelforge generation object to our provider update, keeping the raw response.
      */
-    private function providerUpdateFrom(string $body): ProviderUpdate
+    private function providerUpdateFrom(stdClass $generation, string $rawResponse): ProviderUpdate
     {
-        $generation = json_decode($body);
-
-        $status = match ($generation->status) {
+        $status = match ($generation->status ?? null) {
             'queued' => GenerationStatus::Queued,
             'processing' => GenerationStatus::Processing,
             'succeeded' => GenerationStatus::Succeeded,
             'failed' => GenerationStatus::Failed,
-            default => throw new UnexpectedValueException("Pixelforge answered an unknown generation status: {$body}"),
+            default => throw new UnexpectedValueException("Pixelforge sent an unknown generation status: {$rawResponse}"),
         };
 
         // Both of Pixelforge's failure codes mean the provider accepted it, then failed (ADR 0025).
         $failureReason = $status === GenerationStatus::Failed ? FailureReason::ProviderFailed : null;
 
-        return new ProviderUpdate($generation->id, $status, $body, $failureReason);
+        return new ProviderUpdate((string) $generation->id, $status, $rawResponse, $failureReason);
     }
 
     /**
