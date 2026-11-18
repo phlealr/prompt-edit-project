@@ -7,14 +7,17 @@ use App\Enums\Quality;
 use App\Enums\Size;
 use App\ImageProviders\Estimate;
 use App\ImageProviders\Exceptions\PricingUnavailable;
+use App\ImageProviders\Exceptions\UsageUnavailable;
 use App\ImageProviders\ImageProvider;
 use App\ImageProviders\Pixelforge\PixelforgeImageProvider;
 use App\ImageProviders\ProviderUpdate;
+use App\ImageProviders\ProviderUsage;
 use App\ImageProviders\Rates;
 use App\ImageProviders\VerifiedWebhook;
 use App\ImageProviders\WebhookUpdate;
 use App\Models\Generation;
 use App\ValueObjects\Money;
+use Carbon\CarbonImmutable;
 use Symfony\Component\HttpFoundation\HeaderBag;
 use Throwable;
 
@@ -52,6 +55,14 @@ final class FakeImageProvider implements ImageProvider
      * @var list<Throwable>
      */
     public array $fetchFailures = [];
+
+    /** What usage() answers; by default no days. */
+    public ?ProviderUsage $usage = null;
+
+    public bool $usageUnavailable = false;
+
+    /** The range of the last usage() call, as "start end". */
+    public ?string $usageAskedFor = null;
 
     /** @var list<string> The provider ids of every fetch() call. */
     public array $fetched = [];
@@ -151,5 +162,16 @@ final class FakeImageProvider implements ImageProvider
         }
 
         return new ProviderUpdate($generation->provider_id, $this->fetchStatus, '{"fake":true}');
+    }
+
+    public function usage(CarbonImmutable $start, CarbonImmutable $end): ProviderUsage
+    {
+        $this->usageAskedFor = "{$start->toDateString()} {$end->toDateString()}";
+
+        if ($this->usageUnavailable) {
+            throw new UsageUnavailable('Fake usage is unavailable.');
+        }
+
+        return $this->usage ?? new ProviderUsage([], CarbonImmutable::now());
     }
 }

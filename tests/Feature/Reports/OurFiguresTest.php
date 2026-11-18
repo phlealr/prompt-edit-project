@@ -12,6 +12,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     $this->travelTo('2026-11-18 12:00:00');
     $this->operator = User::factory()->create(['is_admin' => true]);
+    fakeImageProvider();
 });
 
 /**

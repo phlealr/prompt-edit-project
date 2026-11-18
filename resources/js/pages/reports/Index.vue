@@ -28,6 +28,11 @@ function show(): void {
     });
 }
 
+// "14:03 UTC", the time Pixelforge's (cached) figures were fetched.
+function asOfUtc(iso: string): string {
+    return `${iso.slice(11, 16)} UTC`;
+}
+
 function toggleDay(date: string): void {
     openDay.value = openDay.value === date ? null : date;
 }
@@ -53,6 +58,13 @@ function toggleDay(date: string): void {
                 <Input id="end" v-model="range.end" type="date" />
             </div>
             <Button type="submit" :disabled="range.processing">Show</Button>
+            <p
+                v-if="report.providerFiguresAsOf"
+                class="pb-2 text-muted-foreground"
+            >
+                Pixelforge figures as of
+                {{ asOfUtc(report.providerFiguresAsOf) }}
+            </p>
             <InputError class="w-full" :message="range.errors.start" />
             <InputError class="w-full" :message="range.errors.end" />
         </form>
@@ -77,6 +89,10 @@ function toggleDay(date: string): void {
 
         <section class="grid gap-2">
             <Heading variant="small" title="Per day" />
+            <p v-if="report.providerUnavailable" class="text-destructive">
+                Couldn't reach Pixelforge's usage report. Our figures are shown
+                alone.
+            </p>
             <table class="w-full text-left tabular-nums">
                 <thead class="text-muted-foreground">
                     <tr>
@@ -84,6 +100,8 @@ function toggleDay(date: string): void {
                         <th>Generations</th>
                         <th>User spend</th>
                         <th>Provider cost</th>
+                        <th>Pixelforge's cost</th>
+                        <th>Difference</th>
                         <th>Profit</th>
                     </tr>
                 </thead>
@@ -97,6 +115,17 @@ function toggleDay(date: string): void {
                             <td>{{ day.figures.generations }}</td>
                             <td>{{ day.figures.userSpend.exact }}</td>
                             <td>{{ day.figures.providerCost.exact }}</td>
+                            <td>
+                                {{ day.pixelforgeCost?.exact ?? 'Unavailable' }}
+                            </td>
+                            <td
+                                :class="{
+                                    'font-semibold text-destructive':
+                                        day.highlighted,
+                                }"
+                            >
+                                {{ day.difference?.exact ?? 'Unavailable' }}
+                            </td>
                             <td>{{ day.figures.profit.exact }}</td>
                         </tr>
                         <tr
@@ -110,6 +139,8 @@ function toggleDay(date: string): void {
                             <td>{{ user.figures.generations }}</td>
                             <td>{{ user.figures.userSpend.exact }}</td>
                             <td>{{ user.figures.providerCost.exact }}</td>
+                            <td></td>
+                            <td></td>
                             <td>{{ user.figures.profit.exact }}</td>
                         </tr>
                     </template>

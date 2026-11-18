@@ -9,7 +9,9 @@ use App\ImageProviders\Exceptions\InvalidWebhook;
 use App\ImageProviders\Exceptions\PricingUnavailable;
 use App\ImageProviders\Exceptions\ProviderBusy;
 use App\ImageProviders\Exceptions\ProviderUnreachable;
+use App\ImageProviders\Exceptions\UsageUnavailable;
 use App\Models\Generation;
+use Carbon\CarbonImmutable;
 use Symfony\Component\HttpFoundation\HeaderBag;
 
 /**
@@ -45,6 +47,13 @@ interface ImageProvider
      * @throws ProviderUnreachable
      */
     public function fetch(Generation $generation): ProviderUpdate;
+
+    /**
+     * What the provider billed per UTC day, for any range of days (ADR 0016, ADR 0030).
+     *
+     * @throws UsageUnavailable
+     */
+    public function usage(CarbonImmutable $start, CarbonImmutable $end): ProviderUsage;
 
     /**
      * Checks that a webhook request comes from the provider, on its raw body, and reads which event

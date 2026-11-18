@@ -19,6 +19,9 @@ export type DayReport = {
     date: string;
     figures: ReportFigures;
     users: UserFigures[];
+    pixelforgeCost: Money | null;
+    difference: Money | null;
+    highlighted: boolean;
 };
 
 /** App\Data\Reports\OperatorReport */
@@ -28,4 +31,6 @@ export type OperatorReport = {
     totals: ReportFigures;
     days: DayReport[];
     users: UserFigures[];
+    providerFiguresAsOf: string | null;
+    providerUnavailable: boolean;
 };

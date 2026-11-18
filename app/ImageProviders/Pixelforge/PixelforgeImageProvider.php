@@ -14,14 +14,19 @@ use App\ImageProviders\Exceptions\PromptRejected;
 use App\ImageProviders\Exceptions\ProviderBusy;
 use App\ImageProviders\Exceptions\ProviderUnreachable;
 use App\ImageProviders\Exceptions\SubmissionRefused;
+use App\ImageProviders\Exceptions\UsageUnavailable;
 use App\ImageProviders\ImageProvider;
 use App\ImageProviders\ProviderUpdate;
+use App\ImageProviders\ProviderUsage;
 use App\ImageProviders\Rates;
+use App\ImageProviders\UsageDay;
 use App\ImageProviders\VerifiedWebhook;
 use App\ImageProviders\WebhookUpdate;
 use App\Models\Generation;
 use App\ValueObjects\Money;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
@@ -38,6 +43,9 @@ final class PixelforgeImageProvider implements ImageProvider
 {
     /** Rates are in dollars per 1M tokens. */
     private const int TOKENS_PER_RATE = 1_000_000;
+
+    /** Pixelforge's usage report covers at most this many days per request. */
+    private const int USAGE_DAYS_PER_REQUEST = 92;
 
     /** Webhooks signed more than 5 minutes before or after now are refused, to stop replays. */
     private const int WEBHOOK_TOLERANCE_SECONDS = 300;
@@ -133,6 +141,101 @@ final class PixelforgeImageProvider implements ImageProvider
         if ($response->serverError()) {
             throw new ProviderUnreachable($answer);
         }
+    }
+
+    /**
+     * Pixelforge reports usage for at most 92 days per request, so a longer range is asked in
+     * consecutive pieces and joined (docs/spec/pixelforge-api.md#usage, ADR 0030).
+     */
+    public function usage(CarbonImmutable $start, CarbonImmutable $end): ProviderUsage
+    {
+        $days = [];
+        $fetchedAt = null;
+
+        for ($pieceStart = $start; $pieceStart->lte($end); $pieceStart = $pieceEnd->addDay()) {
+            $pieceEnd = $pieceStart->addDays(self::USAGE_DAYS_PER_REQUEST - 1)->min($end);
+            // Cached as "<fetched at>\n<body>": one string, so the time always matches its figures.
+            [$pieceFetchedAt, $body] = explode("\n", $this->cachedUsagePiece($pieceStart, $pieceEnd), 2);
+
+            foreach ($this->usageDaysFrom($body, $pieceStart, $pieceEnd) as $day) {
+                $days[] = $day;
+            }
+
+            // The oldest piece decides how fresh the whole report is.
+            $pieceFetchedAt = CarbonImmutable::parse($pieceFetchedAt);
+            $fetchedAt = $fetchedAt === null ? $pieceFetchedAt : $fetchedAt->min($pieceFetchedAt);
+        }
+
+        return new ProviderUsage($days, $fetchedAt ?? now());
+    }
+
+    /**
+     * One piece's fetch time and response body, cached briefly as one string (ADR 0030). A string,
+     * because the cache refuses to unserialize our classes.
+     *
+     * @throws UsageUnavailable
+     */
+    private function cachedUsagePiece(CarbonImmutable $start, CarbonImmutable $end): string
+    {
+        return Cache::remember(
+            "pixelforge.usage.{$start->toDateString()}.{$end->toDateString()}",
+            (int) config('services.pixelforge.usage_cache_seconds'),
+            function () use ($start, $end): string {
+                try {
+                    $body = $this->http()
+                        ->withToken((string) config('services.pixelforge.api_key'))
+                        ->get('usage', ['start_date' => $start->toDateString(), 'end_date' => $end->toDateString()])
+                        ->throw()
+                        ->body();
+                } catch (ConnectionException|RequestException $exception) {
+                    throw new UsageUnavailable("Pixelforge's usage could not be fetched.", previous: $exception);
+                }
+
+                // Checked before caching, so an unusable answer is never cached.
+                $this->usageDaysFrom($body, $start, $end);
+
+                return now()->utc()->toIso8601ZuluString()."\n".$body;
+            },
+        );
+    }
+
+    /**
+     * The days of a usage body, which must hold every day of its piece: Pixelforge lists days
+     * without usage too, with zeros.
+     *
+     * @return list<UsageDay>
+     *
+     * @throws UsageUnavailable
+     */
+    private function usageDaysFrom(string $body, CarbonImmutable $start, CarbonImmutable $end): array
+    {
+        $days = json_decode($body)->data ?? null;
+
+        if (! is_array($days)) {
+            throw new UsageUnavailable("Pixelforge's usage has an unexpected shape.");
+        }
+
+        $usageDays = [];
+
+        foreach ($days as $day) {
+            $cost = $day->cost_usd ?? null;
+
+            if (! is_string($day->date ?? null) || ! is_string($cost) || preg_match('/^\d{1,9}\.\d{9}\z/', $cost) !== 1) {
+                throw new UsageUnavailable("Pixelforge's usage has an unexpected day: ".json_encode($day));
+            }
+
+            $usageDays[] = new UsageDay($day->date, Money::fromDecimalString($cost));
+        }
+
+        $expected = array_map(fn (CarbonInterface $day): string => $day->toDateString(), CarbonPeriod::create($start, $end)->toArray());
+        $received = array_values(array_unique(array_map(fn (UsageDay $day): string => $day->date, $usageDays)));
+        sort($received);
+
+        if ($received !== $expected) {
+            throw new UsageUnavailable("Pixelforge's usage leaves out days from {$start->toDateString()} to {$end->toDateString()}.");
+        }
+
+        return $usageDays;
     }
 
     /**
