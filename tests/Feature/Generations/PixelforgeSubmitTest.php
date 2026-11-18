@@ -45,7 +45,11 @@ it('creates the generation with its UUID as idempotency key and its id in the me
 });
 
 it('turns the accepted generation into a provider update', function (string $status, GenerationStatus $expected, ?FailureReason $reason) {
-    Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeGeneration(['status' => $status]), 202)]);
+    $usage = ['input_text_tokens' => 115, 'input_image_tokens' => 1530, 'output_tokens' => 6450, 'reasoning_tokens' => 8000, 'total_tokens' => 16095];
+    Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeGeneration([
+        'status' => $status,
+        'usage' => $status === 'succeeded' ? $usage : null,
+    ]), 202)]);
 
     $update = app(PixelforgeImageProvider::class)->submit(Generation::factory()->create());
 
@@ -125,6 +129,27 @@ it('turns a network error or timeout into ProviderUnreachable', function () {
 
 it('turns a server error into ProviderUnreachable, since it may have created the generation', function () {
     Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeError('api_error', 'internal_error'), 500)]);
+
+    app(PixelforgeImageProvider::class)->submit(Generation::factory()->create());
+})->throws(ProviderUnreachable::class);
+
+it('stores the provider\'s times in UTC, whatever offset they arrive in', function () {
+    Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeGeneration([
+        'status' => 'processing',
+        'started_at' => '2026-11-05T00:30:00+01:00',
+    ]), 202)]);
+
+    $update = app(PixelforgeImageProvider::class)->submit(Generation::factory()->create());
+
+    expect($update->startedAt?->toIso8601ZuluString())->toBe('2026-11-04T23:30:00Z')
+        ->and($update->startedAt?->timezoneName)->toBe('UTC');
+});
+
+it('treats a create response it cannot read as a generation that may exist', function () {
+    Http::fake(['pixelforge.test/v1/generations' => Http::response(pixelforgeGeneration([
+        'status' => 'succeeded',
+        'usage' => null,
+    ]), 202)]);
 
     app(PixelforgeImageProvider::class)->submit(Generation::factory()->create());
 })->throws(ProviderUnreachable::class);

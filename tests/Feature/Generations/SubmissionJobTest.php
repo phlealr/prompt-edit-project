@@ -47,16 +47,8 @@ it('never moves a generation back', function (GenerationStatus $current, Provide
     'queued, then queued again' => [GenerationStatus::Queued, new ProviderUpdate('gen_1', GenerationStatus::Queued, '{}')],
     'succeeded, then processing' => [GenerationStatus::Succeeded, new ProviderUpdate('gen_1', GenerationStatus::Processing, '{}')],
     'succeeded, then failed' => [GenerationStatus::Succeeded, ProviderUpdate::failedBeforeCreation(FailureReason::ProviderFailed)],
-    'failed, then succeeded' => [GenerationStatus::Failed, new ProviderUpdate('gen_1', GenerationStatus::Succeeded, '{}')],
+    'failed, then succeeded' => [GenerationStatus::Failed, new ProviderUpdate('gen_1', GenerationStatus::Succeeded, '{}', providerCost: Money::fromNanodollars(1))],
 ]);
-
-it('leaves a succeeded update for the ticket that charges it', function () {
-    $generation = Generation::factory()->create();
-
-    app(ApplyProviderUpdate::class)->handle($generation, new ProviderUpdate('gen_1', GenerationStatus::Succeeded, '{}'));
-
-    expect($generation->fresh()?->status)->toBe(GenerationStatus::Pending);
-});
 
 it('creates no second provider generation, hold or release when the job runs twice', function () {
     $generation = Generation::factory()->withHold()->create();

@@ -25,6 +25,11 @@ use Illuminate\Support\Carbon;
  * @property string|null $provider_id
  * @property string|null $provider_response
  * @property bool $may_exist_at_provider
+ * @property Money|null $provider_cost
+ * @property string|null $image_url
+ * @property Carbon|null $image_url_expires_at
+ * @property Carbon|null $started_at
+ * @property Carbon|null $completed_at
  * @property string $prompt
  * @property Size $size
  * @property Quality $quality
@@ -37,7 +42,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
-#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider'])]
+#[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider', 'provider_cost', 'image_url', 'image_url_expires_at', 'started_at', 'completed_at'])]
 class Generation extends Model
 {
     /** @use HasFactory<GenerationFactory> */
@@ -53,6 +58,9 @@ class Generation extends Model
             'quality' => Quality::class,
             'reference_images' => 'array',
             'may_exist_at_provider' => 'boolean',
+            'image_url_expires_at' => 'datetime',
+            'started_at' => 'datetime',
+            'completed_at' => 'datetime',
             'status' => GenerationStatus::class,
             'failure_reason' => FailureReason::class,
         ];
@@ -100,6 +108,19 @@ class Generation extends Model
         return Attribute::make(
             get: fn (int $value): Money => Money::fromNanodollars($value),
             set: fn (Money $amount): int => $amount->nanodollars(),
+        );
+    }
+
+    /**
+     * What the provider billed, in nanodollars, as Money; null until succeeded.
+     *
+     * @return Attribute<Money|null, Money|null>
+     */
+    protected function providerCost(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?int $value): ?Money => $value === null ? null : Money::fromNanodollars($value),
+            set: fn (?Money $amount): ?int => $amount?->nanodollars(),
         );
     }
 

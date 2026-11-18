@@ -20,6 +20,7 @@ use App\ImageProviders\VerifiedWebhook;
 use App\ImageProviders\WebhookUpdate;
 use App\Models\Generation;
 use App\ValueObjects\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
@@ -29,6 +30,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use stdClass;
 use Symfony\Component\HttpFoundation\HeaderBag;
+use TypeError;
 use UnexpectedValueException;
 
 final class PixelforgeImageProvider implements ImageProvider
@@ -81,7 +83,12 @@ final class PixelforgeImageProvider implements ImageProvider
             throw new ProviderUnreachable($exception->getMessage(), previous: $exception);
         }
 
-        return $this->providerUpdateFrom(json_decode($response->body()), $response->body());
+        // An answer we cannot read still means the provider may have created the generation.
+        try {
+            return $this->providerUpdateFrom(json_decode($response->body()), $response->body());
+        } catch (UnexpectedValueException|TypeError $exception) {
+            throw new ProviderUnreachable("Pixelforge's answer could not be read: {$response->body()}", previous: $exception);
+        }
     }
 
     /**
@@ -191,10 +198,51 @@ final class PixelforgeImageProvider implements ImageProvider
             default => throw new UnexpectedValueException("Pixelforge sent an unknown generation status: {$rawResponse}"),
         };
 
-        // Both of Pixelforge's failure codes mean the provider accepted it, then failed (ADR 0025).
-        $failureReason = $status === GenerationStatus::Failed ? FailureReason::ProviderFailed : null;
+        return new ProviderUpdate(
+            providerId: (string) $generation->id,
+            status: $status,
+            rawResponse: $rawResponse,
+            // Both of Pixelforge's failure codes mean it accepted the generation, then failed (ADR 0025).
+            failureReason: $status === GenerationStatus::Failed ? FailureReason::ProviderFailed : null,
+            providerCost: $status === GenerationStatus::Succeeded ? $this->billedCost($generation) : null,
+            imageUrl: $generation->image_url ?? null,
+            imageUrlExpiresAt: $this->time($generation->image_url_expires_at ?? null),
+            startedAt: $this->time($generation->started_at ?? null),
+            completedAt: $this->time($generation->completed_at ?? null),
+        );
+    }
 
-        return new ProviderUpdate((string) $generation->id, $status, $rawResponse, $failureReason);
+    /**
+     * What Pixelforge bills a succeeded generation: its usage at the rates on the generation itself,
+     * fixed when it was created, not the current pricing (docs/spec/pixelforge-api.md#the-generation-object).
+     */
+    private function billedCost(stdClass $generation): Money
+    {
+        $usage = $generation->usage ?? null;
+        $rates = $generation->rates ?? null;
+
+        if (! $usage instanceof stdClass || ! $rates instanceof stdClass) {
+            throw new UnexpectedValueException('Pixelforge sent a succeeded generation without its usage and rates.');
+        }
+
+        return $this->providerCost(
+            new Rates(
+                Money::fromDecimalString($rates->input_text_tokens),
+                Money::fromDecimalString($rates->input_image_tokens),
+                Money::fromDecimalString($rates->output_tokens),
+                Money::fromDecimalString($rates->reasoning_tokens),
+            ),
+            $usage->input_text_tokens,
+            $usage->input_image_tokens,
+            $usage->output_tokens,
+            $usage->reasoning_tokens,
+        );
+    }
+
+    private function time(?string $iso8601): ?CarbonImmutable
+    {
+        // Stored in UTC: the completion time decides the UTC day the provider bills on (ADR 0016).
+        return $iso8601 === null ? null : CarbonImmutable::parse($iso8601)->utc();
     }
 
     /**

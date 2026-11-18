@@ -7,6 +7,7 @@ use App\Enums\GenerationStatus;
 use App\ImageProviders\ProviderUpdate;
 use App\Models\CreditTransaction;
 use App\Models\Generation;
+use App\ValueObjects\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -44,38 +45,74 @@ class ApplyProviderUpdate
                 return;
             }
 
-            // Success settles the hold with a charge, which generation-updates 03 adds. Until then a
-            // later webhook or poll settles it.
-            if ($update->status === GenerationStatus::Succeeded) {
-                return;
-            }
-
             $current->update([
                 'status' => $update->status,
                 'failure_reason' => $update->failureReason,
                 'provider_id' => $update->providerId,
                 'provider_response' => $update->rawResponse,
+                'provider_cost' => $update->providerCost,
+                'image_url' => $update->imageUrl,
+                'image_url_expires_at' => $update->imageUrlExpiresAt,
+                'started_at' => $update->startedAt,
+                'completed_at' => $update->completedAt,
             ]);
 
             // A failed generation costs nothing: its hold comes back as a release (ADR 0006).
             if ($update->status === GenerationStatus::Failed) {
                 $this->releaseHold($current);
             }
+
+            // A succeeded one gives its hold back and is charged the exact amount, in full. The
+            // provider cost is set exactly when the update is succeeded (ProviderUpdate).
+            if ($update->providerCost !== null) {
+                $held = $this->releaseHold($current);
+                $this->charge($current, $update->providerCost, $held);
+            }
         });
     }
 
-    private function releaseHold(Generation $generation): void
+    /**
+     * @return Money The amount that was held, as a positive amount.
+     */
+    private function releaseHold(Generation $generation): Money
     {
         $hold = CreditTransaction::query()
             ->where('generation_id', $generation->id)
             ->where('type', CreditTransactionType::Hold)
             ->sole();
+        $held = $hold->amount->negate();
 
         CreditTransaction::query()->create([
             'user_id' => $generation->user_id,
             'generation_id' => $generation->id,
             'type' => CreditTransactionType::Release,
-            'amount' => $hold->amount->negate(),
+            'amount' => $held,
         ]);
+
+        return $held;
+    }
+
+    /**
+     * Charges cost plus 25%, rounded up, in full: never capped at the hold (ADR 0005, ADR 0026).
+     */
+    private function charge(Generation $generation, Money $providerCost, Money $held): void
+    {
+        $charge = $providerCost->plusMarkup();
+
+        CreditTransaction::query()->create([
+            'user_id' => $generation->user_id,
+            'generation_id' => $generation->id,
+            'type' => CreditTransactionType::Charge,
+            'amount' => $charge->negate(),
+        ]);
+
+        if ($charge->nanodollars() > $held->nanodollars()) {
+            Log::warning('A charge exceeds its hold; the difference is uncovered.', [
+                'generation' => $generation->id,
+                'hold' => $held->exact(),
+                'charge' => $charge->exact(),
+                'difference' => Money::fromNanodollars($charge->nanodollars() - $held->nanodollars())->exact(),
+            ]);
+        }
     }
 }
