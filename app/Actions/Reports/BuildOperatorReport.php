@@ -3,8 +3,10 @@
 namespace App\Actions\Reports;
 
 use App\Data\Reports\DayReport;
+use App\Data\Reports\NegativeBalance;
 use App\Data\Reports\OperatorReport;
 use App\Data\Reports\ReportFigures;
+use App\Data\Reports\UncoveredCharge;
 use App\Data\Reports\UserFigures;
 use App\Enums\GenerationStatus;
 use App\ImageProviders\Exceptions\UsageUnavailable;
@@ -13,6 +15,7 @@ use App\Models\Generation;
 use App\ValueObjects\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class BuildOperatorReport
 {
@@ -30,7 +33,8 @@ class BuildOperatorReport
             ->where('status', GenerationStatus::Succeeded)
             ->where('completed_at', '>=', $start->startOfDay())
             ->where('completed_at', '<', $end->addDay()->startOfDay())
-            ->with(['charge', 'user'])
+            ->with(['charge', 'hold', 'user'])
+            ->orderBy('completed_at')
             ->get();
 
         try {
@@ -61,6 +65,13 @@ class BuildOperatorReport
             );
         }
 
+        $uncoveredCharges = $this->uncoveredCharges($generations);
+        $uncoveredTotal = 0;
+
+        foreach ($uncoveredCharges as $uncoveredCharge) {
+            $uncoveredTotal += $uncoveredCharge->uncovered->nanodollars();
+        }
+
         return new OperatorReport(
             $start->toDateString(),
             $end->toDateString(),
@@ -69,7 +80,55 @@ class BuildOperatorReport
             $this->perUser($generations),
             $usage?->fetchedAt->utc()->toIso8601ZuluString(),
             providerUnavailable: $usage === null,
+            uncoveredCharges: $uncoveredCharges,
+            uncoveredTotal: Money::fromNanodollars($uncoveredTotal),
+            negativeBalances: $this->negativeBalances(),
         );
+    }
+
+    /**
+     * The generations whose charge exceeded their hold, found from the ledger alone (ADR 0026).
+     *
+     * @param  Collection<int, Generation>  $generations
+     * @return list<UncoveredCharge>
+     */
+    private function uncoveredCharges(Collection $generations): array
+    {
+        $uncovered = [];
+
+        foreach ($generations as $generation) {
+            $held = $generation->hold?->amount->negate()->nanodollars() ?? 0;
+            $charged = $generation->charge?->amount->negate()->nanodollars() ?? 0;
+
+            if ($charged > $held) {
+                $uncovered[] = new UncoveredCharge(
+                    $generation->user->email,
+                    (string) $generation->completed_at?->utc()->toDateString(),
+                    Money::fromNanodollars($held),
+                    Money::fromNanodollars($charged),
+                    Money::fromNanodollars($charged - $held),
+                );
+            }
+        }
+
+        return $uncovered;
+    }
+
+    /**
+     * The users whose balance, the sum of their ledger rows, is below zero now.
+     *
+     * @return list<NegativeBalance>
+     */
+    private function negativeBalances(): array
+    {
+        return array_values(DB::table('credit_transactions')
+            ->join('users', 'users.id', '=', 'credit_transactions.user_id')
+            ->groupBy('users.id', 'users.email')
+            ->havingRaw('sum(credit_transactions.amount) < 0')
+            ->orderBy('users.email')
+            ->get(['users.email', DB::raw('sum(credit_transactions.amount) as balance')])
+            ->map(fn (object $row): NegativeBalance => new NegativeBalance((string) $row->email, Money::fromNanodollars((int) $row->balance)))
+            ->all());
     }
 
     /**

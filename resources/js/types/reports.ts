@@ -33,4 +33,22 @@ export type OperatorReport = {
     users: UserFigures[];
     providerFiguresAsOf: string | null;
     providerUnavailable: boolean;
+    uncoveredCharges: UncoveredCharge[];
+    uncoveredTotal: Money;
+    negativeBalances: NegativeBalance[];
+};
+
+/** App\Data\Reports\UncoveredCharge */
+export type UncoveredCharge = {
+    email: string;
+    date: string;
+    hold: Money;
+    charge: Money;
+    uncovered: Money;
+};
+
+/** App\Data\Reports\NegativeBalance */
+export type NegativeBalance = {
+    email: string;
+    balance: Money;
 };

@@ -84,6 +84,8 @@ function toggleDay(date: string): void {
                 </dd>
                 <dt class="text-muted-foreground">Profit</dt>
                 <dd class="tabular-nums">{{ report.totals.profit.exact }}</dd>
+                <dt class="text-muted-foreground">Uncovered charges</dt>
+                <dd class="tabular-nums">{{ report.uncoveredTotal.exact }}</dd>
             </dl>
         </section>
 
@@ -171,6 +173,67 @@ function toggleDay(date: string): void {
                         <td>{{ user.figures.userSpend.exact }}</td>
                         <td>{{ user.figures.providerCost.exact }}</td>
                         <td>{{ user.figures.profit.exact }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="grid gap-2">
+            <Heading variant="small" title="Uncovered charges" />
+            <p
+                v-if="
+                    report.uncoveredCharges.length === 0 &&
+                    report.negativeBalances.length === 0
+                "
+                class="text-muted-foreground"
+            >
+                No uncovered charges.
+            </p>
+            <table
+                v-if="report.uncoveredCharges.length > 0"
+                class="w-full text-left tabular-nums"
+            >
+                <thead class="text-muted-foreground">
+                    <tr>
+                        <th class="py-1">User</th>
+                        <th>Completed</th>
+                        <th>Hold</th>
+                        <th>Charge</th>
+                        <th>Uncovered</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+                        v-for="(charge, index) in report.uncoveredCharges"
+                        :key="index"
+                        class="border-t"
+                    >
+                        <td class="py-1">{{ charge.email }}</td>
+                        <td>{{ charge.date }}</td>
+                        <td>{{ charge.hold.exact }}</td>
+                        <td>{{ charge.charge.exact }}</td>
+                        <td>{{ charge.uncovered.exact }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <table
+                v-if="report.negativeBalances.length > 0"
+                class="w-full text-left tabular-nums"
+            >
+                <thead class="text-muted-foreground">
+                    <tr>
+                        <th class="py-1">User below zero now</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+                        v-for="user in report.negativeBalances"
+                        :key="user.email"
+                        class="border-t"
+                    >
+                        <td class="py-1">{{ user.email }}</td>
+                        <td>{{ user.balance.exact }}</td>
                     </tr>
                 </tbody>
             </table>

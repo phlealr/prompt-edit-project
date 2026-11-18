@@ -46,6 +46,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read CreditTransaction|null $charge
+ * @property-read CreditTransaction|null $hold
  */
 #[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider', 'provider_cost', 'image_url', 'image_url_expires_at', 'started_at', 'completed_at', 'polled_at', 'submission_gave_up_at'])]
 class Generation extends Model
@@ -129,6 +130,16 @@ class Generation extends Model
             get: fn (?int $value): ?Money => $value === null ? null : Money::fromNanodollars($value),
             set: fn (?Money $amount): ?int => $amount?->nanodollars(),
         );
+    }
+
+    /**
+     * The ledger's hold row for this generation.
+     *
+     * @return HasOne<CreditTransaction, $this>
+     */
+    public function hold(): HasOne
+    {
+        return $this->hasOne(CreditTransaction::class)->where('type', CreditTransactionType::Hold);
     }
 
     /**
