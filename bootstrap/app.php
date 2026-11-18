@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // A signed-in user opening a guest page, such as the home page, lands on Generate.
+        $middleware->redirectUsersTo('/generate');
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
