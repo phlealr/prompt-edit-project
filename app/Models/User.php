@@ -45,4 +45,13 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
         ];
     }
+
+    /**
+     * The operator account published for reviewers (OPERATOR_EMAIL). Nobody can change its name,
+     * email or password from the web, so one person cannot lock out the others.
+     */
+    public function isSharedOperator(): bool
+    {
+        return $this->email === config('operator.email');
+    }
 }

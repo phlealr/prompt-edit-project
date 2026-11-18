@@ -22,6 +22,14 @@ class ProfileUpdateRequest extends FormRequest
     }
 
     /**
+     * The shared operator's account cannot be changed (OPERATOR_EMAIL).
+     */
+    public function authorize(): bool
+    {
+        return ! $this->user()?->isSharedOperator();
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
