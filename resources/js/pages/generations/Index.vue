@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import GenerationCardView from '@/components/GenerationCardView.vue';
 import Heading from '@/components/Heading.vue';
-import { history } from '@/routes';
+import { Button } from '@/components/ui/button';
+import { generate, history } from '@/routes';
+import type { GenerationCard, Paginated } from '@/types';
 
 defineProps<{
-    generations: { id: number; prompt: string; status: string }[];
+    generations: Paginated<GenerationCard>;
 }>();
 
 defineOptions({
@@ -29,17 +32,38 @@ const page = usePage();
             {{ page.flash.status }}
         </p>
 
-        <ul class="flex flex-col gap-2">
-            <li
-                v-for="generation in generations"
+        <div
+            v-if="generations.data.length === 0"
+            class="flex flex-col items-start gap-3 rounded-xl border p-6"
+        >
+            <p>No generations yet</p>
+            <Button as-child>
+                <Link :href="generate()">Generate an image</Link>
+            </Button>
+        </div>
+
+        <div
+            v-else
+            class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        >
+            <GenerationCardView
+                v-for="generation in generations.data"
                 :key="generation.id"
-                class="flex justify-between gap-4 rounded-md border p-3 text-sm"
-            >
-                <span class="truncate">{{ generation.prompt }}</span>
-                <span class="text-muted-foreground">{{
-                    generation.status
-                }}</span>
-            </li>
-        </ul>
+                :generation="generation"
+            />
+        </div>
+
+        <nav
+            v-if="generations.prev_page_url || generations.next_page_url"
+            class="flex justify-between"
+        >
+            <Button v-if="generations.prev_page_url" variant="outline" as-child>
+                <Link :href="generations.prev_page_url">Previous</Link>
+            </Button>
+            <span v-else></span>
+            <Button v-if="generations.next_page_url" variant="outline" as-child>
+                <Link :href="generations.next_page_url">Next</Link>
+            </Button>
+        </nav>
     </div>
 </template>

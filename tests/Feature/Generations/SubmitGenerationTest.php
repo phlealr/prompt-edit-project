@@ -119,10 +119,10 @@ it('lands on the history page with "Generation submitted" and the new generation
         ->assertInertia(fn (Assert $page) => $page
             ->component('generations/Index')
             ->hasFlash('status', 'Generation submitted')
-            ->has('generations', 2)
-            ->where('generations.0.id', $newest->id)
-            ->where('generations.0.status', 'pending')
-            ->where('generations.1.id', $older->id)
+            ->has('generations.data', 2)
+            ->where('generations.data.0.id', $newest->id)
+            ->where('generations.data.0.status', 'pending')
+            ->where('generations.data.1.id', $older->id)
         );
 });
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CreditTransactionType;
 use App\Enums\FailureReason;
 use App\Enums\GenerationStatus;
 use App\Enums\Quality;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -43,6 +45,7 @@ use Illuminate\Support\Carbon;
  * @property Money $estimate_maximum
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ * @property-read CreditTransaction|null $charge
  */
 #[Fillable(['uuid', 'user_id', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider', 'provider_cost', 'image_url', 'image_url_expires_at', 'started_at', 'completed_at', 'polled_at', 'submission_gave_up_at'])]
 class Generation extends Model
@@ -126,6 +129,16 @@ class Generation extends Model
             get: fn (?int $value): ?Money => $value === null ? null : Money::fromNanodollars($value),
             set: fn (?Money $amount): ?int => $amount?->nanodollars(),
         );
+    }
+
+    /**
+     * The ledger's charge row for this generation, once succeeded.
+     *
+     * @return HasOne<CreditTransaction, $this>
+     */
+    public function charge(): HasOne
+    {
+        return $this->hasOne(CreditTransaction::class)->where('type', CreditTransactionType::Charge);
     }
 
     /**

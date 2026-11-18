@@ -2,25 +2,28 @@
 
 namespace App\Actions\Generations;
 
-use App\Data\Generations\GenerationSummary;
+use App\Data\Generations\GenerationCard;
 use App\Models\Generation;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ListGenerations
 {
+    private const int PER_PAGE = 20;
+
     /**
-     * The user's own generations, newest first, as the history page shows them.
+     * The user's own generations, newest first, 20 per page, as history cards.
      *
-     * @return array<int, GenerationSummary>
+     * @return LengthAwarePaginator<int, GenerationCard>
      */
-    public function handle(User $user): array
+    public function handle(User $user): LengthAwarePaginator
     {
         return Generation::query()
             ->whereBelongsTo($user)
+            ->with('charge')
             ->latest()
             ->latest('id')
-            ->get()
-            ->map(fn (Generation $generation): GenerationSummary => GenerationSummary::from($generation))
-            ->all();
+            ->paginate(self::PER_PAGE)
+            ->through(fn (Generation $generation): GenerationCard => GenerationCard::from($generation));
     }
 }
