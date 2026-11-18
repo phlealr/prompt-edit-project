@@ -8,8 +8,11 @@ use App\Http\Controllers\Generations\ListGenerationsController;
 use App\Http\Controllers\Generations\StoreGenerationController;
 use App\Http\Controllers\Reports\ShowOperatorReportController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-Route::inertia('/', 'Welcome')->middleware('guest')->name('home');
+Route::get('/', fn () => Inertia::render('Welcome', [
+    'markupPercent' => (int) config('credits.markup_percent'),
+]))->middleware('guest')->name('home');
 
 Route::get('generate', CreateGenerationController::class)->name('generate');
 Route::post('generate/estimate', EstimateGenerationController::class)->name('generate.estimate');

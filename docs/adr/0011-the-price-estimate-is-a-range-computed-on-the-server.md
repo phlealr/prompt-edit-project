@@ -1,6 +1,6 @@
 # 0011. The price estimate is a range computed on the server
 
-- Status: accepted
+- Status: accepted (amended by ADR 0045: the provider estimates costs; our markup is added outside it)
 - Date: 2026-11-17
 
 ## Context

@@ -28,13 +28,15 @@ class EstimateGeneration
     public function handle(User $user, string $prompt, Size $size, Quality $quality, array $referenceImages): EstimateForUser
     {
         $estimate = $this->provider->estimate($prompt, $size, $quality, $referenceImages);
+        $markupPercent = (int) config('credits.markup_percent');
+        $maximum = $estimate->maximumCost->plusMarkup($markupPercent);
         $balance = $this->calculateBalance->handle($user);
 
         return new EstimateForUser(
-            $estimate->minimum,
-            $estimate->maximum,
+            $estimate->minimumCost->plusMarkup($markupPercent),
+            $maximum,
             $balance,
-            $balance->nanodollars() >= $estimate->maximum->nanodollars(),
+            $balance->nanodollars() >= $maximum->nanodollars(),
         );
     }
 }

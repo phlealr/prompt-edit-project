@@ -4,6 +4,8 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { Button } from '@/components/ui/button';
 import { login, register } from '@/routes';
 
+const props = defineProps<{ markupPercent: number }>();
+
 const page = usePage();
 
 // What a guest sees on the home page; signed-in users go straight to Generate.
@@ -18,7 +20,7 @@ const steps = [
     },
     {
         title: 'Pay the exact cost',
-        text: "When the image is ready, you pay the image service's exact cost plus 25%, and the rest of the hold comes back. Failed generations are free.",
+        text: `When the image is ready, you pay the image service's exact cost plus ${props.markupPercent}%, and the rest of the hold comes back. Failed generations are free.`,
     },
 ];
 </script>

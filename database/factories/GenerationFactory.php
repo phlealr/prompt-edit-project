@@ -42,6 +42,7 @@ class GenerationFactory extends Factory
                 Money::fromDecimalString('40.00'),
                 Money::fromDecimalString('12.50'),
             ),
+            'markup_percent' => 25,
             'estimate_minimum' => Money::fromNanodollars(58_125_000),
             'estimate_maximum' => Money::fromNanodollars(86_250_000),
         ];

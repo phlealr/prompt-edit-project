@@ -32,7 +32,7 @@ it('shows a guest our own home page, saying what the app does and how it charges
         ->assertInertia(fn (Assert $page) => $page->component('Welcome')->where('name', config('app.name')));
 
     $page = (string) file_get_contents(resource_path('js/pages/Welcome.vue'));
-    expect($page)->toContain('plus 25%')
+    expect($page)->toContain('plus ${props.markupPercent}%')
         ->toContain('Failed generations are free')
         ->not->toContain('Laracasts')
         ->not->toContain('laravel.com');

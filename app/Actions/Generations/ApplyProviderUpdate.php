@@ -93,11 +93,12 @@ class ApplyProviderUpdate
     }
 
     /**
-     * Charges cost plus 25%, rounded up, in full: never capped at the hold (ADR 0005, ADR 0026).
+     * Charges the cost plus the generation's own markup, rounded up, in full: never capped at the
+     * hold (ADR 0005, ADR 0026, ADR 0045).
      */
     private function charge(Generation $generation, Money $providerCost, Money $held): void
     {
-        $charge = $providerCost->plusMarkup();
+        $charge = $providerCost->plusMarkup($generation->markup_percent);
 
         CreditTransaction::query()->create([
             'user_id' => $generation->user_id,

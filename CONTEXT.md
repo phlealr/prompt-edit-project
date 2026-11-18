@@ -55,8 +55,9 @@ from this list is either new language to reconsider or a gap to record with `rec
   (tokens are the provider's pricing units). _Source_: ADR 0006.
 - **Provider cost**: what the provider charges us for a succeeded generation. _Avoid_: price, charge,
   fee. _Source_: ADR 0005.
-- **Markup**: the 25% added to the provider cost. _Avoid_: margin, fee, commission. _Source_:
-  ADR 0005.
+- **Markup**: the percentage added to the provider cost, 25% unless configured; each generation
+  keeps the markup of its hold. _Avoid_: margin, fee, commission. _Source_:
+  ADR 0005, ADR 0045.
 - **Charge**: what the user pays for a succeeded generation: provider cost plus markup, rounded up to
   a whole nanodollar. Also the ledger row recording it. _Avoid_: price, cost, bill, fee. _Source_:
   ADR 0005, ADR 0006.

@@ -54,18 +54,19 @@ final readonly class Money implements JsonSerializable
     }
 
     /**
-     * The charge for this provider cost: cost × 5 / 4, rounded up to a whole nanodollar (ADR 0005).
+     * The charge for this provider cost: cost × (100 + markup) / 100, rounded up to a whole
+     * nanodollar (ADR 0005, ADR 0045).
      */
-    public function plusMarkup(): self
+    public function plusMarkup(int $percent): self
     {
-        if ($this->nanodollars < 0) {
-            throw new InvalidArgumentException('A provider cost cannot be negative.');
+        if ($this->nanodollars < 0 || $percent < 0) {
+            throw new InvalidArgumentException('A provider cost and its markup cannot be negative.');
         }
 
-        $timesFive = $this->nanodollars * 5;
-        $charge = intdiv($timesFive, 4);
+        $timesMarkup = $this->nanodollars * (100 + $percent);
+        $charge = intdiv($timesMarkup, 100);
 
-        if ($timesFive % 4 !== 0) {
+        if ($timesMarkup % 100 !== 0) {
             $charge++;
         }
 

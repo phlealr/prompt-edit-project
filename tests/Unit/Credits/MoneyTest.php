@@ -16,17 +16,24 @@ it('rejects a decimal string that is not an exact amount', function (string $dec
     Money::fromDecimalString($decimal);
 })->with(['', 'abc', '1.0000000001', '1e3', '0.1.2', ' 1.00', "1.00\n"])->throws(InvalidArgumentException::class);
 
-it('adds the markup to a provider cost, rounded up to a whole nanodollar', function (int $cost, int $charge) {
-    expect(Money::fromNanodollars($cost)->plusMarkup()->nanodollars())->toBe($charge);
+it('adds the markup to a provider cost, rounded up to a whole nanodollar', function (int $cost, int $percent, int $charge) {
+    expect(Money::fromNanodollars($cost)->plusMarkup($percent)->nanodollars())->toBe($charge);
 })->with([
-    'worked example' => [373_875_000, 467_343_750],
-    'one nanodollar rounds 1.25 up' => [1, 2],
-    'divisible by four' => [4, 5],
-    'zero' => [0, 0],
+    'worked example at 25%' => [373_875_000, 25, 467_343_750],
+    'one nanodollar rounds 1.25 up' => [1, 25, 2],
+    'divisible by four' => [4, 25, 5],
+    'zero' => [0, 25, 0],
+    '30% of 100' => [100, 30, 130],
+    '30% of 1 rounds 1.3 up' => [1, 30, 2],
+    'no markup' => [373_875_000, 0, 373_875_000],
 ]);
 
+it('refuses a negative markup', function () {
+    Money::fromNanodollars(100)->plusMarkup(-1);
+})->throws(InvalidArgumentException::class);
+
 it('refuses to add the markup to a negative amount', function () {
-    Money::fromNanodollars(-1)->plusMarkup();
+    Money::fromNanodollars(-1)->plusMarkup(25);
 })->throws(InvalidArgumentException::class);
 
 it('formats an amount for users with 4 decimals, rounded half up', function (int $nanodollars, string $formatted) {

@@ -11,16 +11,15 @@ beforeEach(function () {
     config()->set('services.pixelforge.pricing_cache_seconds', 300);
 });
 
-it('estimates the worked example at the published rates', function () {
+it('estimates the worked example\'s provider costs at the published rates', function () {
     Http::fake(['pixelforge.test/v1/pricing' => Http::response(pixelforgePricing())]);
 
     $estimate = app(PixelforgeImageProvider::class)->estimate(str_repeat('a', 400), Size::Landscape, Quality::High, ['https://example.com/a.png', 'https://example.com/b.png']);
 
-    // Worked example maximum: provider cost $0.373875000, charge $0.467343750.
-    expect($estimate->maximum->nanodollars())->toBe(467_343_750)
-        // Minimum: 85 text, 1,530 image, 6,450 output, 1,000 reasoning tokens
-        // = $0.286225000 provider cost, charge $0.357781250.
-        ->and($estimate->minimum->nanodollars())->toBe(357_781_250)
+    // Worked example maximum: provider cost $0.373875000.
+    expect($estimate->maximumCost->nanodollars())->toBe(373_875_000)
+        // Minimum: 85 text, 1,530 image, 6,450 output, 1,000 reasoning tokens = $0.286225000.
+        ->and($estimate->minimumCost->nanodollars())->toBe(286_225_000)
         ->and($estimate->rates->inputTextTokens->nanodollars())->toBe(5_000_000_000)
         ->and($estimate->rates->inputImageTokens->nanodollars())->toBe(10_000_000_000)
         ->and($estimate->rates->outputTokens->nanodollars())->toBe(40_000_000_000)
@@ -33,8 +32,8 @@ it('counts a duplicated reference image URL twice', function () {
     $estimate = app(PixelforgeImageProvider::class)
         ->estimate('', Size::Square, Quality::Low, ['https://example.com/a.png', 'https://example.com/a.png']);
 
-    // 2 × 765 × 10,000 + 280 × 40,000 + 500 × 12,500 = 32,750,000 → charge 40,937,500.
-    expect($estimate->maximum->nanodollars())->toBe(40_937_500);
+    // 2 × 765 × 10,000 + 280 × 40,000 + 500 × 12,500 = 32,750,000.
+    expect($estimate->maximumCost->nanodollars())->toBe(32_750_000);
 });
 
 it('rounds text tokens outwards: down for the minimum, up for the maximum', function () {
@@ -43,10 +42,10 @@ it('rounds text tokens outwards: down for the minimum, up for the maximum', func
     // 12 characters = 3 text tokens: minimum floor(2.55) = 2, maximum ceil(3.45) = 4.
     $estimate = app(PixelforgeImageProvider::class)->estimate(str_repeat('a', 12), Size::Square, Quality::Low, []);
 
-    // Minimum: 2 × 5,000 + 280 × 40,000 + 0 reasoning = 11,210,000 → charge 14,012,500.
-    // Maximum: 4 × 5,000 + 280 × 40,000 + 500 × 12,500 = 17,470,000 → charge 21,837,500.
-    expect($estimate->minimum->nanodollars())->toBe(14_012_500)
-        ->and($estimate->maximum->nanodollars())->toBe(21_837_500);
+    // Minimum: 2 × 5,000 + 280 × 40,000 + 0 reasoning = 11,210,000.
+    // Maximum: 4 × 5,000 + 280 × 40,000 + 500 × 12,500 = 17,470,000.
+    expect($estimate->minimumCost->nanodollars())->toBe(11_210_000)
+        ->and($estimate->maximumCost->nanodollars())->toBe(17_470_000);
 });
 
 it('counts text tokens by Unicode characters, not bytes', function () {
@@ -55,8 +54,8 @@ it('counts text tokens by Unicode characters, not bytes', function () {
     // 8 characters of 2 bytes each: 2 text tokens (bytes would give 4), maximum ceil(2.3) = 3.
     $estimate = app(PixelforgeImageProvider::class)->estimate(str_repeat('é', 8), Size::Square, Quality::Low, []);
 
-    // 3 × 5,000 + 280 × 40,000 + 500 × 12,500 = 17,465,000 → charge 21,831,250.
-    expect($estimate->maximum->nanodollars())->toBe(21_831_250);
+    // 3 × 5,000 + 280 × 40,000 + 500 × 12,500 = 17,465,000.
+    expect($estimate->maximumCost->nanodollars())->toBe(17_465_000);
 });
 
 it('caches the rates for the configured time and uses new ones after it expires', function () {
@@ -66,15 +65,15 @@ it('caches the rates for the configured time and uses new ones after it expires'
     ]);
     $provider = app(PixelforgeImageProvider::class);
 
-    // Low, 1024x1024, empty prompt: 280 × 40,000 + 500 × 12,500 = 17,450,000 → 21,812,500.
-    expect($provider->estimate('', Size::Square, Quality::Low, [])->maximum->nanodollars())->toBe(21_812_500);
+    // Low, 1024x1024, empty prompt: 280 × 40,000 + 500 × 12,500 = 17,450,000.
+    expect($provider->estimate('', Size::Square, Quality::Low, [])->maximumCost->nanodollars())->toBe(17_450_000);
 
     $this->travel(299)->seconds();
-    expect($provider->estimate('', Size::Square, Quality::Low, [])->maximum->nanodollars())->toBe(21_812_500);
+    expect($provider->estimate('', Size::Square, Quality::Low, [])->maximumCost->nanodollars())->toBe(17_450_000);
 
-    // At $80.00: 280 × 80,000 + 500 × 12,500 = 28,650,000 → 35,812,500.
+    // At $80.00: 280 × 80,000 + 500 × 12,500 = 28,650,000.
     $this->travel(2)->seconds();
-    expect($provider->estimate('', Size::Square, Quality::Low, [])->maximum->nanodollars())->toBe(35_812_500);
+    expect($provider->estimate('', Size::Square, Quality::Low, [])->maximumCost->nanodollars())->toBe(28_650_000);
     Http::assertSentCount(2);
 });
 
@@ -112,6 +111,6 @@ it('reads the cached pricing back from a cache store that serializes', function 
     $first = $provider->estimate('', Size::Square, Quality::Low, []);
     $second = $provider->estimate('', Size::Square, Quality::Low, []);
 
-    expect($second->maximum->nanodollars())->toBe($first->maximum->nanodollars());
+    expect($second->maximumCost->nanodollars())->toBe($first->maximumCost->nanodollars());
     Http::assertSentCount(1);
 });

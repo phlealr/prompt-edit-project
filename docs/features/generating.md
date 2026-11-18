@@ -46,7 +46,7 @@ Only signed-in users can open it. It shows:
 - It is computed on the server from the provider's current pricing (ADR 0011) and refreshed,
   debounced, whenever the prompt, size, quality or number of reference images changes. The frontend
   holds no pricing logic.
-- Its ends are user charges, markup included: each is the provider cost at that end, × 1.25, rounded
+- Its ends are user charges, markup included: each is the provider cost at that end, plus the markup (25% unless configured, ADR 0045), rounded
   up to a whole nanodollar (ADR 0005).
 - Token counts at each end, from the provider's pricing: text tokens are `ceil(characters / 4)`
   counting Unicode characters, taken −15% (rounded down) for the minimum and +15% (rounded up) for the
@@ -115,7 +115,7 @@ moves a generation back or applies anything twice.
    generate page uses the new rates.
 4. The check is skipped on every attempt after one that ended in a network error, timeout or server
    error, since the provider may already have created the generation (ADR 0040, ADR 0043). Whatever the provider billed is then charged at cost plus
-   25% (`generation-updates` spec).
+   the generation's markup (`generation-updates` spec, ADR 0045).
 
 ### Invalid input
 

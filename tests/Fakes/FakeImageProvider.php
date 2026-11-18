@@ -84,8 +84,9 @@ final class FakeImageProvider implements ImageProvider
     public function __construct()
     {
         $this->estimate = new Estimate(
-            Money::fromNanodollars(10_000_000),
-            Money::fromNanodollars(20_000_000),
+            // Provider costs; at the default 25% markup, charges of $0.01 to $0.02.
+            Money::fromNanodollars(8_000_000),
+            Money::fromNanodollars(16_000_000),
             new Rates(
                 Money::fromDecimalString('5.00'),
                 Money::fromDecimalString('10.00'),

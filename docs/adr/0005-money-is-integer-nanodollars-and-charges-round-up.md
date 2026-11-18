@@ -1,6 +1,6 @@
 # 0005. Money is integer nanodollars, and the user's charge rounds up to a whole nanodollar
 
-- Status: accepted
+- Status: accepted (amended by ADR 0045: the markup is configurable, default 25%)
 - Date: 2026-11-17
 
 ## Context

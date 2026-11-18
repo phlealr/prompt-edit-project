@@ -43,6 +43,7 @@ use Illuminate\Support\Carbon;
  * @property GenerationStatus $status
  * @property FailureReason|null $failure_reason
  * @property Rates $rates
+ * @property int $markup_percent
  * @property Money $estimate_minimum
  * @property Money $estimate_maximum
  * @property Carbon $created_at
@@ -50,7 +51,7 @@ use Illuminate\Support\Carbon;
  * @property-read CreditTransaction|null $charge
  * @property-read CreditTransaction|null $hold
  */
-#[Fillable(['uuid', 'user_id', 'provider', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider', 'provider_cost', 'image_url', 'image_url_expires_at', 'started_at', 'completed_at', 'polled_at', 'submission_gave_up_at'])]
+#[Fillable(['uuid', 'user_id', 'provider', 'prompt', 'size', 'quality', 'reference_images', 'status', 'rates', 'markup_percent', 'estimate_minimum', 'estimate_maximum', 'provider_id', 'provider_response', 'failure_reason', 'may_exist_at_provider', 'provider_cost', 'image_url', 'image_url_expires_at', 'started_at', 'completed_at', 'polled_at', 'submission_gave_up_at'])]
 class Generation extends Model
 {
     /** @use HasFactory<GenerationFactory> */
@@ -65,6 +66,7 @@ class Generation extends Model
             'size' => Size::class,
             'quality' => Quality::class,
             'reference_images' => 'array',
+            'markup_percent' => 'integer',
             'may_exist_at_provider' => 'boolean',
             'image_url_expires_at' => 'datetime',
             'started_at' => 'datetime',

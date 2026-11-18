@@ -79,7 +79,8 @@ Create classes with `php artisan make:*` and move nothing out of the place the t
 - Every amount is an integer number of nanodollars, in a `bigint` column, handled as `Money`. No
   `float` holds money anywhere: PHP, SQL, casts or JavaScript.
 - Provider decimal strings become nanodollars by exact string parsing, never through a float.
-- The markup and its rounding happen only in `Money`: charge = ceil(cost × 5 / 4), integer arithmetic,
+- The markup and its rounding happen only in `Money`: charge = ceil(cost × (100 + markup) / 100), integer
+  arithmetic, with the generation's own markup percent (`MARKUP_PERCENT`, default 25, ADR 0045),
   once, on the final amount. A charge is never capped at its hold; one above it logs a warning.
 - Money reaches the frontend already formatted by `Money` (4 decimals for users, the exact 9 decimals
   for operators, the exact amount on hover). The frontend does no money arithmetic.

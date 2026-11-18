@@ -72,7 +72,7 @@ final class PixelforgeImageProvider implements ImageProvider
         $minimumCost = $this->providerCost($pricing->rates, intdiv($textTokens * 85, 100), $imageTokens, $outputTokens, $reasoningTokens->minimum);
         $maximumCost = $this->providerCost($pricing->rates, $this->ceilDiv($textTokens * 115, 100), $imageTokens, $outputTokens, $reasoningTokens->maximum);
 
-        return new Estimate($minimumCost->plusMarkup(), $maximumCost->plusMarkup(), $pricing->rates);
+        return new Estimate($minimumCost, $maximumCost, $pricing->rates);
     }
 
     public function currentRates(): Rates
