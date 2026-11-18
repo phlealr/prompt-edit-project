@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
+use Inertia\Testing\AssertableInertia as Assert;
 
 it('redirects a guest opening History to sign in', function () {
     $this->get(route('history'))->assertRedirect(route('login'));
@@ -25,6 +26,14 @@ it('sends a signed-in user opening the home page to Generate', function () {
         ->assertRedirect(route('generate'));
 });
 
-it('still shows the welcome page to a guest', function () {
-    $this->get(route('home'))->assertOk();
+it('shows a guest our own home page, saying what the app does and how it charges', function () {
+    $this->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('Welcome')->where('name', config('app.name')));
+
+    $page = (string) file_get_contents(resource_path('js/pages/Welcome.vue'));
+    expect($page)->toContain('plus 25%')
+        ->toContain('Failed generations are free')
+        ->not->toContain('Laracasts')
+        ->not->toContain('laravel.com');
 });
